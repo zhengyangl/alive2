@@ -11,7 +11,7 @@ struct smt_initializer {
   void reset();
 
 private:
-  void initialize();
+  void init();
   void destroy();
 };
 
