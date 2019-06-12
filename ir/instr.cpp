@@ -58,6 +58,8 @@ BinOp::BinOp(Type &type, string &&name, Value &lhs, Value &rhs, Op op,
   case UMul_Overflow:
   case FAdd:
   case FSub:
+  case FMul:
+  case FDiv:
     assert(flags == 0);
     break;
   }
@@ -93,6 +95,8 @@ void BinOp::print(ostream &os) const {
   case UMul_Overflow: str = "umul_overflow"; break;
   case FAdd: str = "fadd"; break;
   case FSub: str = "fsub"; break;
+  case FMul: str = "fmul"; break;
+  case FDiv: str = "fdiv"; break;
   }
 
   const char *flag = nullptr;
@@ -281,6 +285,14 @@ StateValue BinOp::toSMT(State &s) const {
   case FSub:
     val = a.fsub(b);
     break;
+
+  case FMul:
+    val = a.fmul(b);
+    break;
+
+  case FDiv:
+    val = a.fdiv(b);
+    break;
   }
 
   return { move(val), move(not_poison) };
@@ -314,6 +326,8 @@ expr BinOp::getTypeConstraints(const Function &f) const {
     break;
   case FAdd:
   case FSub:
+  case FMul:
+  case FDiv:
     instrconstr = getType().enforceFloatType() &&
                   getType() == lhs.getType() &&
                   getType() == rhs.getType();

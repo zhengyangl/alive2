@@ -199,6 +199,8 @@ public:
   expr toBVBool() const;
   expr fadd(const expr &rhs) const;
   expr fsub(const expr &rhs) const;
+  expr fmul(const expr &rhs) const;
+  expr fdiv(const expr &rhs) const;
 
   // we don't expose SMT expr types, so range must be passed as a dummy value
   // of the desired type

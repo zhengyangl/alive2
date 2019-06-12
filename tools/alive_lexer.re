@@ -216,6 +216,8 @@ re2c:yyfill:check = 0;
 "umul_overflow" { return UMUL_OVERFLOW; }
 "fadd" { return FADD; }
 "fsub" { return FSUB; }
+"fmul" { return FMUL; }
+"fdiv" { return FDIV; }
 "float" { return FLOAT_TYPE;}
 "double" { return DOUBLE_TYPE;}
 "unreachable" { return UNREACH; }

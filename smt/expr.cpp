@@ -709,6 +709,16 @@ expr expr::fsub(const expr &rhs) const {
   return Z3_mk_fpa_sub(ctx(), rm, ast(), rhs());
 }
 
+expr expr::fmul(const expr &rhs) const {
+  auto rm = Z3_mk_fpa_round_nearest_ties_to_even(ctx());
+  return Z3_mk_fpa_mul(ctx(), rm, ast(), rhs());
+}
+
+expr expr::fdiv(const expr &rhs) const {
+  auto rm = Z3_mk_fpa_round_nearest_ties_to_even(ctx());
+  return Z3_mk_fpa_div(ctx(), rm, ast(), rhs());
+}
+
 expr expr::operator&(const expr &rhs) const {
   if (eq(rhs))
     return *this;
