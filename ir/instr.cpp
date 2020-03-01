@@ -2591,7 +2591,17 @@ void SIMDBinOp::rauw(const Value &what, Value &with) {
 }
 
 void SIMDBinOp::print(ostream &os) const {
-  os << getName() << " = vb " << *a << ", " << *b;
+  const char *str = nullptr;
+  switch (op) {
+  case x86_mmx_packssdw:
+    str = "x86.mmx.packssdw ";
+    break;
+  case x86_sse2_pavg_b:
+    str = "x86.sse2.pavg.b ";
+    break;
+  }
+
+  os << getName() << " = " << str << *a << ", " << *b;
 }
 
 StateValue SIMDBinOp::toSMT(State &s) const {
