@@ -2609,12 +2609,20 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   auto &vect1 = s[*a];
   auto &vect2 = s[*b];
   vector<StateValue> vals;
-  for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
-    auto ai = ty->extract(vect1, i);
-    auto bi = ty->extract(vect2, i);
-    auto one = expr::mkUInt(1, 8);
-    vals.emplace_back((ai.value + bi.value + one).lshr(one),
-                      ai.non_poison && bi.non_poison);
+
+  switch (Op) {
+  case x86_mmx_packssdw:
+    // not implemented
+    UNREACHABLE();
+  case x86_sse2_pavg_b:
+    for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
+      auto ai = ty->extract(vect1, i);
+      auto bi = ty->extract(vect2, i);
+      auto one = expr::mkUInt(1, 8);
+      vals.emplace_back((ai.value + bi.value + one).lshr(one),
+                        ai.non_poison && bi.non_poison);
+    }
+    break;
   }
   return ty->aggregateVals(vals);
 }
