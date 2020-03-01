@@ -2358,20 +2358,20 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, *mask);
 }
 
-vector<Value*> VectorIntrinsicBinOp::operands() const {
+vector<Value*> SIMDBinOp::operands() const {
   return { a, b };
 }
 
-void VectorIntrinsicBinOp::rauw(const Value &what, Value &with) {
+void SIMDBinOp::rauw(const Value &what, Value &with) {
   RAUW(a);
   RAUW(b);
 }
 
-void VectorIntrinsicBinOp::print(ostream &os) const {
+void SIMDBinOp::print(ostream &os) const {
   os << getName() << " = vb " << *a << ", " << *b;
 }
 
-StateValue VectorIntrinsicBinOp::toSMT(State &s) const {
+StateValue SIMDBinOp::toSMT(State &s) const {
   auto ty = getType().getAsAggregateType();
   auto &vect1 = s[*a];
   auto &vect2 = s[*b];
@@ -2386,7 +2386,7 @@ StateValue VectorIntrinsicBinOp::toSMT(State &s) const {
   return ty->aggregateVals(vals);
 }
 
-expr VectorIntrinsicBinOp::getTypeConstraints(const Function &f) const {
+expr SIMDBinOp::getTypeConstraints(const Function &f) const {
   return Value::getTypeConstraints() &&
          getType() == a->getType() &&
          a->getType().enforceVectorType() &&
@@ -2397,9 +2397,8 @@ expr VectorIntrinsicBinOp::getTypeConstraints(const Function &f) const {
          a->getType().enforceVectorTypeLength(16);
 }
 
-unique_ptr<Instr> VectorIntrinsicBinOp::dup(const string &suffix) const {
-  return make_unique<VectorIntrinsicBinOp>(getType(), getName() + suffix,
-                                           *a, *b, op);
+unique_ptr<Instr> SIMDBinOp::dup(const string &suffix) const {
+  return make_unique<SIMDBinOp>(getType(), getName() + suffix, *a, *b, op);
 }
 
 
