@@ -676,11 +676,19 @@ public:
         return error(i);
       RETURN_IDENTIFIER(make_unique<Free>(*b, false));
     }
+    case llvm::Intrinsic::x86_mmx_packssdw:
     case llvm::Intrinsic::x86_sse2_pavg_b:
     {
       PARSE_BINOP();
-      RETURN_IDENTIFIER(make_unique<VectorIntrinsicBinOp>(*ty, value_name(i), *a, *b,
-                                                          VectorIntrinsicBinOp::x86_sse2_pavg_b));
+      SIMDBinOp::Op op;
+      switch (i.getIntrinsicID()) {
+      case llvm::Intrinsic::x86_mmx_packssdw:
+        op = SIMDBinOp::x86_mmx_packssdw; break;
+      case llvm::Intrinsic::x86_sse2_pavg_b:
+        op = SIMDBinOp::x86_sse2_pavg_b; break;
+      default: UNREACHABLE();
+      }
+      RETURN_IDENTIFIER(make_unique<SIMDBinOp>(*ty, value_name(i), *a, *b, op));
     }
 
     // do nothing intrinsics

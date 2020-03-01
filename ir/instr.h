@@ -648,16 +648,16 @@ public:
 };
 
 
-class VectorIntrinsicBinOp final : public Instr {
+class SIMDBinOp final : public Instr {
 public:
-  enum Op { x86_sse2_pavg_b };
+  enum Op { x86_mmx_packssdw, x86_sse2_pavg_b };
 
 private:
   Value *a, *b;
   Op op;
 
 public:
-  VectorIntrinsicBinOp(Type &type, std::string &&name, Value &a, Value &b, Op op)
+  SIMDBinOp(Type &type, std::string &&name, Value &a, Value &b, Op op)
     : Instr(type, move(name)), a(&a), b(&b), op(op) {}
   std::vector<Value*> operands() const override;
   void rauw(const Value &what, Value &with) override;
