@@ -74,6 +74,7 @@ public:
   smt::expr enforceVectorTypeIff(const Type &other) const;
   smt::expr enforceVectorTypeEquiv(const Type &other) const;
   smt::expr enforceVectorTypeSameChildTy(const Type &other) const;
+  smt::expr enforceVectorTypeLength(unsigned length) const;
   virtual smt::expr enforceVectorType(
     const std::function<smt::expr(const Type&)> &enforceElem) const;
   smt::expr enforceScalarOrVectorType(

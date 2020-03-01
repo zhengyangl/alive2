@@ -2581,4 +2581,49 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
+vector<Value*> VectorIntrinsicBinOp::operands() const {
+  return { a, b };
+}
+
+void VectorIntrinsicBinOp::rauw(const Value &what, Value &with) {
+  RAUW(a);
+  RAUW(b);
+}
+
+void VectorIntrinsicBinOp::print(ostream &os) const {
+  os << getName() << " = vb " << *a << ", " << *b;
+}
+
+StateValue VectorIntrinsicBinOp::toSMT(State &s) const {
+  auto ty = getType().getAsAggregateType();
+  auto &vect1 = s[*a];
+  auto &vect2 = s[*b];
+  vector<StateValue> vals;
+  for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
+    auto ai = ty->extract(vect1, i);
+    auto bi = ty->extract(vect2, i);
+    auto one = expr::mkUInt(1, 8);
+    vals.emplace_back((ai.value + bi.value + one).lshr(one),
+                      ai.non_poison && bi.non_poison);
+  }
+  return ty->aggregateVals(vals);
+}
+
+expr VectorIntrinsicBinOp::getTypeConstraints(const Function &f) const {
+  return Value::getTypeConstraints() &&
+         getType() == a->getType() &&
+         a->getType().enforceVectorType() &&
+         a->getType() == b->getType() &&
+         // mask is a vector of i32
+         a->getType().enforceVectorType([](auto &ty)
+                                        { return ty.enforceIntType(8); }) &&
+         a->getType().enforceVectorTypeLength(16);
+}
+
+unique_ptr<Instr> VectorIntrinsicBinOp::dup(const string &suffix) const {
+  return make_unique<VectorIntrinsicBinOp>(getType(), getName() + suffix,
+                                           *a, *b, op);
+}
+
+
 }
