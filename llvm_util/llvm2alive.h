@@ -7,12 +7,14 @@
 #include <optional>
 #include <ostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace llvm {
 class DataLayout;
 class Function;
 class TargetLibraryInfo;
+class Argument;
 }
 
 namespace llvm_util {
@@ -29,4 +31,9 @@ struct initializer {
 std::optional<IR::Function> llvm2alive(llvm::Function &F,
     const llvm::TargetLibraryInfo &TLI,
     const std::vector<std::string_view> &gvnamesInSrc = {});
+
+std::optional<IR::Function> llvm2aliveCM(llvm::Function &F,
+    const llvm::TargetLibraryInfo &TLI,
+    const std::vector<std::string_view> &gvnamesInSrc,
+    std::unordered_map<IR::Input *, llvm::Argument *> *mapConst);
 }

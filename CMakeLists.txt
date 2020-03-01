@@ -81,6 +81,7 @@ set(IR_SRCS
   ir/globals.cpp
   ir/instr.cpp
   ir/memory.cpp
+  ir/simd.cpp
   ir/precondition.cpp
   ir/state.cpp
   ir/state_value.cpp
@@ -148,6 +149,8 @@ if (BUILD_LLVM_UTILS OR BUILD_TV)
     "llvm_util/known_fns.cpp"
     "llvm_util/llvm2alive.cpp"
     "llvm_util/utils.cpp"
+    "synthesis/synthesizer.cpp"
+    "synthesis/ir.cpp"
   )
 
   add_library(llvm_util STATIC ${LLVM_UTIL_SRCS})
@@ -155,6 +158,12 @@ if (BUILD_LLVM_UTILS OR BUILD_TV)
 
   add_llvm_executable(alive-tv
     "tools/alive-tv.cpp"
+  )
+  add_executable(alive-cs
+    "tools/alive-cs.cpp"
+  )
+  add_executable(alive-es
+    "tools/alive-es.cpp"
   )
 
 else()
@@ -167,6 +176,7 @@ if (BUILD_TV)
   endif()
   message(STATUS "Compiling translation validation plugin")
   add_subdirectory(tv)
+  add_subdirectory(superoptimizer)
 else()
   message(STATUS "Skiping translation validation plugin")
 endif()
@@ -184,6 +194,8 @@ if (BUILD_LLVM_UTILS OR BUILD_TV)
   llvm_map_components_to_libnames(llvm_libs support core irreader analysis passes transformutils)
   target_link_libraries(alive2 PRIVATE ${llvm_libs})
   target_link_libraries(alive-tv PRIVATE ${ALIVE_LIBS_LLVM} ${llvm_libs})
+  target_link_libraries(alive-cs PRIVATE ${ALIVE_LIBS_LLVM} ${llvm_libs})
+  target_link_libraries(alive-es PRIVATE ${ALIVE_LIBS_LLVM} ${llvm_libs})
 endif()
 
 if (CYGWIN)
@@ -197,6 +209,8 @@ else()
   target_link_libraries(alive2 PRIVATE ${Z3_LIBRARIES})
   if (BUILD_LLVM_UTILS OR BUILD_TV)
     target_link_libraries(alive-tv PRIVATE ${Z3_LIBRARIES})
+    target_link_libraries(alive-cs PRIVATE ${Z3_LIBRARIES})
+    target_link_libraries(alive-es PRIVATE ${Z3_LIBRARIES})
   endif()
 endif()
 

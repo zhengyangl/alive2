@@ -2868,7 +2868,6 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-
 const ConversionOp *isCast(ConversionOp::Op op, const Value &v) {
   auto c = dynamic_cast<const ConversionOp*>(&v);
   return (c && c->getOp() == op) ? c : nullptr;
@@ -2881,4 +2880,5 @@ Value *isNoOp(const Value &v) {
   // TODO: gep ptr, 0
   return nullptr;
 }
+
 }

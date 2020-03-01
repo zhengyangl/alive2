@@ -52,7 +52,7 @@ class Alive2Test(TestFormat):
       if not filename.startswith('.') and \
           not os.path.isdir(filepath) and \
           (filename.endswith('.opt') or filename.endswith('.src.ll') or
-           filename.endswith('.srctgt.ll')):
+           filename.endswith('.srctgt.ll') or filename.endswith('.es.ll')):
         yield lit.Test.Test(testSuite, path_in_suite + (filename,), localConfig)
 
 
@@ -72,7 +72,13 @@ class Alive2Test(TestFormat):
       if not os.path.isfile('alive-tv'):
         return lit.Test.UNSUPPORTED, ''
 
-    if not alive_tv_1 and not alive_tv_2:
+    alive_es = test.endswith('.es.ll')
+    if alive_es:
+      cmd = ['./alive-es']
+      if not os.path.isfile('alive-es'):
+        return lit.Test.UNSUPPORTED, ''
+
+    if not alive_tv_1 and not alive_tv_2 and not alive_es:
       cmd = ['./alive']
 
     input = readFile(test)

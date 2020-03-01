@@ -108,6 +108,7 @@ private:
     bool used;
   };
   std::map<std::string, std::map<FnCallInput, FnCallOutput>> fn_call_data;
+  std::set<smt::expr> fas;
 
 public:
   State(Function &f, bool source);
@@ -139,6 +140,7 @@ public:
   void addUB(smt::AndExpr &&ubs);
   void addNoReturn();
   void addOOM(smt::expr &&oom) { ooms.add(std::move(oom)); }
+  void addForAll(smt::expr &fa) { fas.insert(fa); }
 
   const std::vector<StateValue>
     addFnCall(const std::string &name, std::vector<StateValue> &&inputs,
@@ -165,6 +167,7 @@ public:
   auto& getOOM() const { return ooms; }
   const auto& getValues() const { return values; }
   const auto& getQuantVars() const { return quantified_vars; }
+  const auto& getForAlls() const { return fas; }
 
   auto& functionDomain() const { return function_domain; }
   auto& returnDomain() const { return return_domain; }

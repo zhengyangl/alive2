@@ -75,6 +75,7 @@ public:
   smt::expr enforceVectorTypeIff(const Type &other) const;
   smt::expr enforceVectorTypeEquiv(const Type &other) const;
   smt::expr enforceVectorTypeSameChildTy(const Type &other) const;
+  smt::expr enforceVectorTypeLength(unsigned length) const;
   virtual smt::expr enforceVectorType(
     const std::function<smt::expr(const Type&)> &enforceElem) const;
   smt::expr enforceScalarOrVectorType(
@@ -89,6 +90,7 @@ public:
   virtual const FloatType* getAsFloatType() const;
   virtual const AggregateType* getAsAggregateType() const;
   virtual const StructType* getAsStructType() const;
+  virtual const VectorType* getAsVectorType() const;
 
   virtual smt::expr toBV(smt::expr e) const;
   virtual IR::StateValue toBV(IR::StateValue v) const;
@@ -334,6 +336,7 @@ public:
   smt::expr enforceVectorType(
     const std::function<smt::expr(const Type&)> &enforceElem) const override;
   void print(std::ostream &os) const override;
+  const VectorType* getAsVectorType() const override;
 };
 
 

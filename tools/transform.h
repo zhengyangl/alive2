@@ -8,7 +8,7 @@
 #include "util/errors.h"
 #include <string>
 #include <ostream>
-#include <unordered_map>
+#include <map>
 
 namespace tools {
 
@@ -52,6 +52,7 @@ class TransformVerify {
 public:
   TransformVerify(Transform &t, bool check_each_var);
   util::Errors verify() const;
+  util::Errors synthesize(std::unordered_map<const IR::Input*, smt::expr> &result) const;
   TypingAssignments getTypings() const;
   void fixupTypes(const TypingAssignments &ty);
 };

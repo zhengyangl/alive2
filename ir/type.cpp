@@ -158,6 +158,12 @@ expr Type::enforceVectorTypeEquiv(const Type &other) const {
   return enforceVectorTypeIff(other) && other.enforceVectorTypeIff(*this);
 }
 
+expr Type::enforceVectorTypeLength(unsigned len) const {
+  if (auto agg = getAsAggregateType())
+    return agg->numElements() == len;
+  return false;
+}
+
 expr
 Type::enforceVectorType(const function<expr(const Type&)> &enforceElem) const {
   return false;
@@ -202,6 +208,10 @@ const AggregateType* Type::getAsAggregateType() const {
 }
 
 const StructType* Type::getAsStructType() const {
+  return nullptr;
+}
+
+const VectorType* Type::getAsVectorType() const {
   return nullptr;
 }
 
@@ -351,7 +361,9 @@ IntType::refines(State &src_s, State &tgt_s, const StateValue &src,
 
 expr IntType::mkInput(State &s, const char *name,
                       const ParamAttrs &attrs) const {
-  return expr::mkVar(name, bits());
+  expr i = expr::mkVar(name, bits());
+  s.addForAll(i);
+  return i;
 }
 
 void IntType::printVal(ostream &os, State &s, const expr &e) const {
@@ -1095,6 +1107,10 @@ expr VectorType::enforceVectorType(
 void VectorType::print(ostream &os) const {
   if (elements)
     os << '<' << elements << " x " << *children[0] << '>';
+}
+
+const VectorType* VectorType::getAsVectorType() const {
+  return this;
 }
 
 

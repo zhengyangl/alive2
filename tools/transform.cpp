@@ -16,6 +16,7 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <iostream>
 
 using namespace IR;
 using namespace smt;
@@ -184,8 +185,10 @@ static void error(Errors &errs, State &src_state, State &tgt_state,
 
 static expr preprocess(Transform &t, const set<expr> &qvars0,
                        const set<expr> &undef_qvars, expr && e) {
+
   if (hit_half_memory_limit())
     return expr::mkForAll(qvars0, move(e));
+
 
   // TODO: benchmark
   if (0) {
@@ -201,10 +204,9 @@ static expr preprocess(Transform &t, const set<expr> &qvars0,
     if (!var.isBool())
       continue;
     e = e.subst(var, true).simplify() &&
-        e.subst(var, false).simplify();
+      e.subst(var, false).simplify();
     qvars.erase(var);
   }
-
   // TODO: maybe try to instantiate undet_xx vars?
   if (undef_qvars.empty() || hit_half_memory_limit())
     return expr::mkForAll(qvars, move(e));
@@ -248,7 +250,6 @@ static expr preprocess(Transform &t, const set<expr> &qvars0,
     if (instances.size() >= 128 || hit_half_memory_limit())
       break;
   }
-
   expr insts(false);
   for (auto &[e, v] : instances) {
     insts |= expr::mkForAll(qvars, move(const_cast<expr&>(e))) && v;
@@ -792,6 +793,134 @@ Errors TransformVerify::verify() const {
   return errs;
 }
 
+Errors TransformVerify::synthesize(unordered_map<const Input*, expr> &result) const {
+  calculateAndInitConstants(t);
+  State::resetGlobals();
+  IR::State src_state(t.src, true);
+  util::sym_exec(src_state);
+  IR::State tgt_state(t.tgt, false);
+  util::sym_exec(tgt_state);
+  auto pre_src_and = src_state.getPre();
+  auto &pre_tgt_and = tgt_state.getPre();
+
+  // optimization: rewrite "tgt /\ (src -> foo)" to "tgt /\ foo" if src = tgt
+  pre_src_and.del(pre_tgt_and);
+  expr pre_src = pre_src_and();
+  expr pre_tgt = pre_tgt_and();
+  expr axioms_expr = expr(true);
+
+  IR::State::ValTy sv = src_state.returnVal(), tv = tgt_state.returnVal();
+
+  auto uvars = sv.second;
+  set<expr> qvars;
+
+  /*  for (auto &[var, val, used] : src_state.getValues()) {
+    (void)used;
+    if (!dynamic_cast<const Input*>(var))
+      continue;
+    cout<<val.first.value;
+    qvars.insert(val.first.value);
+    }*/
+  for (auto e : src_state.getForAlls()) {
+    qvars.insert(e);
+  }
+
+  auto dom_a = src_state.returnDomain()();
+  auto dom_b = tgt_state.returnDomain()();
+
+  expr dom = dom_a && dom_b;
+
+  auto mk_fml = [&](expr &&refines) -> expr {
+    // from the check above we already know that
+    // \exists v,v' . pre_tgt(v') && pre_src(v) is SAT (or timeout)
+    // so \forall v . pre_tgt && (!pre_src(v) || refines) simplifies to:
+    // (pre_tgt && !pre_src) || (!pre_src && false) ->   [assume refines=false]
+    // \forall v . (pre_tgt && !pre_src(v)) ->  [\exists v . pre_src(v)]
+    // false
+    if (refines.isFalse())
+      return move(refines);
+
+    auto fml = pre_tgt && pre_src.implies(refines);
+    return axioms_expr && preprocess(t, qvars, uvars, move(fml));
+  };
+
+
+  const Type &ty = t.src.getType();
+  auto [poison_cnstr, value_cnstr] = ty.refines(src_state, tgt_state, sv.first, tv.first);
+  if (config::debug) {
+    config::dbg()<<"SV"<<std::endl;
+    config::dbg()<<sv.first<<std::endl;
+    config::dbg()<<"TV"<<std::endl;
+    config::dbg()<<tv.first<<std::endl;
+    config::dbg()<<"Value Constraints"<<std::endl;
+    config::dbg()<<value_cnstr<<std::endl;
+    config::dbg()<<"Poison Constraints"<<std::endl;
+    config::dbg()<<poison_cnstr<<std::endl;
+  }
+  Errors errs;
+  const Value *var = nullptr;
+  bool check_each_var = false;
+
+  auto err = [&](const Result &r, print_var_val_ty print, const char *msg) {
+    error(errs, src_state, tgt_state, r, var, msg, check_each_var, print);
+  };
+
+  Solver::check({
+      { mk_fml(dom_a.notImplies(dom_b)),
+          [&](const Result &r) {
+          err(r, [](ostream&, const Model&){},
+              "Source is more defined than target");
+      }},
+      { mk_fml(dom && value_cnstr && poison_cnstr),
+          [&](const Result &r) {
+          if (r.isInvalid()) {
+            errs.add("Invalid expr", false);
+            return;
+          }
+
+          if (r.isTimeout()) {
+            errs.add("Timeout", false);
+            return;
+          }
+
+          if (r.isError()) {
+            errs.add("SMT Error: " + r.getReason(), false);
+            return;
+          }
+
+          if (r.isSkip()) {
+            errs.add("Skip", false);
+            return;
+          }
+
+          if (r.isUnsat()) {
+            errs.add("Unsat", false);
+            return;
+          }
+
+
+          stringstream s;
+          auto &m = r.getModel();
+          s << ";result\n";
+          for (auto &[var, val, used] : tgt_state.getValues()) {
+            (void)used;
+            if (!dynamic_cast<const Input*>(var) &&
+                !dynamic_cast<const ConstantInput*>(var))
+                continue;
+
+            if (var->getName().rfind("%_reservedc", 0) == 0) {
+              auto In = static_cast<const Input *>(var);
+              result[In] = m.eval(val.first.value);
+              s << *var << " = ";
+              print_varval(s, src_state, m, var, var->getType(), val.first);
+              s << '\n';
+            }
+          }
+          std::cout<<s.str();
+      }}
+    });
+  return errs;
+}
 
 TypingAssignments::TypingAssignments(const expr &e) : s(true), sneg(true) {
   if (e.isTrue()) {

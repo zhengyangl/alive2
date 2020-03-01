@@ -6,6 +6,7 @@
 #include "ir/instr.h"
 #include "ir/precondition.h"
 #include "ir/value.h"
+#include "ir/simd.h"
 #include "smt/expr.h"
 #include "util/compiler.h"
 #include <memory>
