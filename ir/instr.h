@@ -608,4 +608,24 @@ public:
   std::unique_ptr<Instr> dup(const std::string &suffix) const override;
 };
 
+
+class VectorIntrinsicBinOp final : public Instr {
+public:
+  enum Op { x86_sse2_pavg_b };
+
+private:
+  Value *a, *b;
+  Op op;
+
+public:
+  VectorIntrinsicBinOp(Type &type, std::string &&name, Value &a, Value &b, Op op)
+    : Instr(type, move(name)), a(&a), b(&b), op(op) {}
+  std::vector<Value*> operands() const override;
+  void rauw(const Value &what, Value &with) override;
+  void print(std::ostream &os) const override;
+  StateValue toSMT(State &s) const override;
+  smt::expr getTypeConstraints(const Function &f) const override;
+  std::unique_ptr<Instr> dup(const std::string &suffix) const override;
+};
+
 }

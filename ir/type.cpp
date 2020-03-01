@@ -158,6 +158,12 @@ expr Type::enforceVectorTypeEquiv(const Type &other) const {
   return enforceVectorTypeIff(other) && other.enforceVectorTypeIff(*this);
 }
 
+expr Type::enforceVectorTypeLength(unsigned len) const {
+  if (auto agg = getAsAggregateType())
+    return agg->numElements() == len;
+  return false;
+}
+
 expr
 Type::enforceVectorType(const function<expr(const Type&)> &enforceElem) const {
   return false;

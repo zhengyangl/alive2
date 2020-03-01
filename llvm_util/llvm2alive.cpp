@@ -10,6 +10,7 @@
 #include "llvm/IR/GetElementPtrTypeIterator.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/InstVisitor.h"
+#include "llvm/IR/IntrinsicsX86.h"
 #include "llvm/IR/Operator.h"
 #include <unordered_map>
 #include <unordered_set>
@@ -628,6 +629,12 @@ public:
           i.getOperand(1), DL())))
         return error(i);
       RETURN_IDENTIFIER(make_unique<Free>(*b, false));
+    }
+    case llvm::Intrinsic::x86_sse2_pavg_b:
+    {
+      PARSE_BINOP();
+      RETURN_IDENTIFIER(make_unique<VectorIntrinsicBinOp>(*ty, value_name(i), *a, *b,
+                                                          VectorIntrinsicBinOp::x86_sse2_pavg_b));
     }
 
     // do nothing intrinsics
