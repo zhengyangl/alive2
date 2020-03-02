@@ -663,7 +663,8 @@ public:
             x86_avx2_phsub_sw,
             x86_avx2_phsub_w,
             x86_avx2_pmadd_ub_sw,
-            x86_avx2_pmadd_wd };
+            x86_avx2_pmadd_wd,
+            x86_avx2_pmul_hr_sw };
 private:
   Value *a, *b;
   Op op;

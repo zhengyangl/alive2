@@ -2581,7 +2581,7 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 14> op0_shape = {
+static array<pair<unsigned, unsigned>, 15> op0_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2596,9 +2596,10 @@ static array<pair<unsigned, unsigned>, 14> op0_shape = {
   /* x86_avx2_phsub_w */     make_pair(16, 16),
   /* x86_avx2_pmadd_ub_sw */ make_pair(32, 8),
   /* x86_avx2_pmadd_wd */    make_pair(16, 16),
+  /* x86_avx2_pmul_hr_sw */  make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 14> op1_shape = {
+static array<pair<unsigned, unsigned>, 15> op1_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2613,9 +2614,10 @@ static array<pair<unsigned, unsigned>, 14> op1_shape = {
   /* x86_avx2_phsub_w */     make_pair(16, 16),
   /* x86_avx2_pmadd_ub_sw */ make_pair(32, 8),
   /* x86_avx2_pmadd_wd */    make_pair(16, 16),
+  /* x86_avx2_pmul_hr_sw */  make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 14> ret_shape = {
+static array<pair<unsigned, unsigned>, 15> ret_shape = {
   /* x86_avx2_packssdw */    make_pair(16, 16),
   /* x86_avx2_packsswb */    make_pair(32, 8),
   /* x86_avx2_packusdw */    make_pair(16, 16),
@@ -2630,6 +2632,7 @@ static array<pair<unsigned, unsigned>, 14> ret_shape = {
   /* x86_avx2_phsub_w */     make_pair(16, 16),
   /* x86_avx2_pmadd_ub_sw */ make_pair(16, 16),
   /* x86_avx2_pmadd_wd */    make_pair(8, 32),
+  /* x86_avx2_pmul_hr_sw */  make_pair(16, 16),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2684,6 +2687,8 @@ void SIMDBinOp::print(ostream &os) const {
     str = "x86.avx2.pmadd.ub.sw ";
   case x86_avx2_pmadd_wd:
     str = "x86.avx2.pmadd.wd ";
+  case x86_avx2_pmul_hr_sw:
+    str = "x86.avx2.pmul.hr.sw ";
   }
 
   os << getName() << " = " << str << *a << ", " << *b;
@@ -2782,11 +2787,28 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     break;
   }
   case x86_avx2_pavg_b:
-  case x86_avx2_pavg_w: {
+  case x86_avx2_pavg_w:
+  case x86_avx2_pmul_hr_sw: {
     function<expr(const expr&, const expr&)> fn;
-    fn = [&](auto a, auto b) -> expr {
-      auto one = expr::mkUInt(1, (op == x86_avx2_pavg_b ? 8 : 16 ));
-      return (a + b + one).lshr(one);
+    switch (op) {
+    case x86_avx2_pavg_b:
+      fn = [&](auto a, auto b) -> expr {
+        return (a + b + expr::mkUInt(1, 8)).lshr(expr::mkUInt(1, 8));
+      };
+      break;
+    case x86_avx2_pavg_w:
+      fn = [&](auto a, auto b) -> expr {
+        return (a + b + expr::mkUInt(1, 16)).lshr(expr::mkUInt(1, 16));
+      };
+      break;
+    case x86_avx2_pmul_hr_sw:
+      fn = [&](auto a, auto b) -> expr {
+        expr t = (a.sext(16) * b.sext(16)).lshr(expr::mkUInt(14, 32));
+        return (t + expr::mkUInt(1, 32)).extract(16, 1);
+      };
+      break;
+    default:
+      UNREACHABLE();
     };
     for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
       auto ai = ty->extract(vect1, i);
