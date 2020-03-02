@@ -658,8 +658,10 @@ public:
             x86_avx2_pavg_w,
             x86_avx2_phadd_d,
             x86_avx2_phadd_sw,
-            x86_avx2_phadd_w, };
-
+            x86_avx2_phadd_w,
+            x86_avx2_phsub_d,
+            x86_avx2_phsub_sw,
+            x86_avx2_phsub_w, };
 private:
   Value *a, *b;
   Op op;
