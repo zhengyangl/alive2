@@ -682,10 +682,11 @@ public:
       PARSE_BINOP();
       SIMDBinOp::Op op;
       switch (i.getIntrinsicID()) {
-      case llvm::Intrinsic::x86_mmx_packssdw:
-        op = SIMDBinOp::x86_mmx_packssdw; break;
       case llvm::Intrinsic::x86_sse2_pavg_b:
         op = SIMDBinOp::x86_sse2_pavg_b; break;
+      case llvm::Intrinsic::x86_avx2_mpsadbw:
+        op = SIMDBinOp::x86_avx2_mpsadbw; break;
+
       default: UNREACHABLE();
       }
       RETURN_IDENTIFIER(make_unique<SIMDBinOp>(*ty, value_name(i), *a, *b, op));

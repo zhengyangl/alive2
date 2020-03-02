@@ -650,7 +650,7 @@ public:
 
 class SIMDBinOp final : public Instr {
 public:
-  enum Op { x86_mmx_packssdw, x86_sse2_pavg_b };
+  enum Op { x86_sse2_pavg_b, x86_avx2_mpsadbw };
 
 private:
   Value *a, *b;

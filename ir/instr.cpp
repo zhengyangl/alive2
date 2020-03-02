@@ -2581,6 +2581,21 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
+static array<pair<unsigned, unsigned>,2> op0_shape = {
+  /* x86_sse2_pavg_b */   make_pair(16, 8),
+  /* x86_avx2_mpsadbw */  make_pair(32, 8),
+};
+
+static array<pair<unsigned, unsigned>,2> op1_shape = {
+  /* x86_sse2_pavg_b */   make_pair(16, 8),
+  /* x86_avx2_mpsadbw */  make_pair(32, 8),
+};
+
+static array<pair<unsigned, unsigned>,2> ret_shape = {
+  /* x86_sse2_pavg_b */   make_pair(16, 8),
+  /* x86_avx2_mpsadbw */  make_pair(16, 16),
+};
+
 vector<Value*> SIMDBinOp::operands() const {
   return { a, b };
 }
@@ -2593,11 +2608,11 @@ void SIMDBinOp::rauw(const Value &what, Value &with) {
 void SIMDBinOp::print(ostream &os) const {
   const char *str = nullptr;
   switch (op) {
-  case x86_mmx_packssdw:
-    str = "x86.mmx.packssdw ";
-    break;
   case x86_sse2_pavg_b:
     str = "x86.sse2.pavg.b ";
+    break;
+  case x86_avx2_mpsadbw:
+    str = "x86.avx2.mpsadbw ";
     break;
   }
 
@@ -2610,10 +2625,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   auto &vect2 = s[*b];
   vector<StateValue> vals;
 
-  switch (Op) {
-  case x86_mmx_packssdw:
-    // not implemented
-    UNREACHABLE();
+  switch (op) {
   case x86_sse2_pavg_b:
     for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
       auto ai = ty->extract(vect1, i);
@@ -2623,19 +2635,30 @@ StateValue SIMDBinOp::toSMT(State &s) const {
                         ai.non_poison && bi.non_poison);
     }
     break;
+  case x86_avx2_mpsadbw:
+    UNREACHABLE();
   }
   return ty->aggregateVals(vals);
 }
 
 expr SIMDBinOp::getTypeConstraints(const Function &f) const {
+  auto op0 = op0_shape[op];
+  auto op1 = op1_shape[op];
+  auto ret = ret_shape[op];
   return Value::getTypeConstraints() &&
-         getType() == a->getType() &&
+         getType().enforceVectorType() &&
          a->getType().enforceVectorType() &&
-         a->getType() == b->getType() &&
+         b->getType().enforceVectorType() &&
          // mask is a vector of i32
-         a->getType().enforceVectorType([](auto &ty)
-                                        { return ty.enforceIntType(8); }) &&
-         a->getType().enforceVectorTypeLength(16);
+         a->getType().enforceVectorType([op0](auto &ty)
+           { return ty.enforceIntType(op0.second); }) &&
+         b->getType().enforceVectorType([op1](auto &ty)
+           { return ty.enforceIntType(op1.second); }) &&
+         getType().enforceVectorType([ret](auto &ty)
+           { return ty.enforceIntType(ret.second); }) &&
+         a->getType().enforceVectorTypeLength(op0.first) &&
+         b->getType().enforceVectorTypeLength(op1.first) &&
+         getType().enforceVectorTypeLength(ret.first);
 }
 
 unique_ptr<Instr> SIMDBinOp::dup(const string &suffix) const {
