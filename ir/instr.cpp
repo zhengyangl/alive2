@@ -2581,22 +2581,25 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>,3> op0_shape = {
+static array<pair<unsigned, unsigned>, 4> op0_shape = {
   /* x86_sse2_pavg_b */   make_pair(16, 8),
   /* x86_avx2_mpsadbw */  make_pair(32, 8),
   /* x86_avx2_packssdw */ make_pair(8, 32),
+  /* x86_avx2_packsswb */ make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>,3> op1_shape = {
+static array<pair<unsigned, unsigned>, 4> op1_shape = {
   /* x86_sse2_pavg_b */   make_pair(16, 8),
   /* x86_avx2_mpsadbw */  make_pair(32, 8),
   /* x86_avx2_packssdw */ make_pair(8, 32),
+  /* x86_avx2_packsswb */ make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>,3> ret_shape = {
+static array<pair<unsigned, unsigned>, 4> ret_shape = {
   /* x86_sse2_pavg_b */   make_pair(16, 8),
   /* x86_avx2_mpsadbw */  make_pair(16, 16),
   /* x86_avx2_packssdw */ make_pair(16, 16),
+  /* x86_avx2_packsswb */ make_pair(32, 8),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2619,6 +2622,9 @@ void SIMDBinOp::print(ostream &os) const {
     break;
   case x86_avx2_packssdw:
     str = "x86.avx2.packssdw ";
+    break;
+  case x86_avx2_packsswb:
+    str = "x86.avx2.packsswb ";
     break;
   }
 
@@ -2646,7 +2652,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   case x86_avx2_mpsadbw:
     // TODO
     UNREACHABLE();
-  case x86_avx2_packssdw:
+  case x86_avx2_packssdw: {
     auto min = expr::IntSMin(16);
     auto max = expr::IntSMax(16);
     for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
@@ -2668,6 +2674,30 @@ StateValue SIMDBinOp::toSMT(State &s) const {
                         move(bi.non_poison));
     }
     break;
+  }
+  case x86_avx2_packsswb: {
+    auto min = expr::IntSMin(8);
+    auto max = expr::IntSMax(8);
+    for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
+      auto ai = aty->extract(vect1, i);
+      vals.emplace_back(expr::mkIf(ai.value.sle(min.sext(8)),
+                                   min,
+                                   expr::mkIf(ai.value.sge(max.sext(8)),
+                                              max,
+                                              ai.value.trunc(8))),
+                        move(ai.non_poison));
+    }
+    for (unsigned i = 0, e = bty->numElementsConst(); i != e; ++i) {
+      auto bi = bty->extract(vect2, i);
+      vals.emplace_back(expr::mkIf(bi.value.sle(min.sext(8)),
+                                   min,
+                                   expr::mkIf(bi.value.sge(max.sext(8)),
+                                              max,
+                                              bi.value.trunc(8))),
+                        move(bi.non_poison));
+    }
+    break;
+  }
   }
   return ty->aggregateVals(vals);
 }
