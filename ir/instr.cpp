@@ -2581,7 +2581,7 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 15> op0_shape = {
+static array<pair<unsigned, unsigned>, 16> op0_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2597,9 +2597,10 @@ static array<pair<unsigned, unsigned>, 15> op0_shape = {
   /* x86_avx2_pmadd_ub_sw */ make_pair(32, 8),
   /* x86_avx2_pmadd_wd */    make_pair(16, 16),
   /* x86_avx2_pmul_hr_sw */  make_pair(16, 16),
+  /* x86_avx2_pmulh_w */     make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 15> op1_shape = {
+static array<pair<unsigned, unsigned>, 16> op1_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2615,9 +2616,10 @@ static array<pair<unsigned, unsigned>, 15> op1_shape = {
   /* x86_avx2_pmadd_ub_sw */ make_pair(32, 8),
   /* x86_avx2_pmadd_wd */    make_pair(16, 16),
   /* x86_avx2_pmul_hr_sw */  make_pair(16, 16),
+  /* x86_avx2_pmulh_w */     make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 15> ret_shape = {
+static array<pair<unsigned, unsigned>, 16> ret_shape = {
   /* x86_avx2_packssdw */    make_pair(16, 16),
   /* x86_avx2_packsswb */    make_pair(32, 8),
   /* x86_avx2_packusdw */    make_pair(16, 16),
@@ -2633,6 +2635,7 @@ static array<pair<unsigned, unsigned>, 15> ret_shape = {
   /* x86_avx2_pmadd_ub_sw */ make_pair(16, 16),
   /* x86_avx2_pmadd_wd */    make_pair(8, 32),
   /* x86_avx2_pmul_hr_sw */  make_pair(16, 16),
+  /* x86_avx2_pmulh_w */     make_pair(16, 16),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2689,6 +2692,8 @@ void SIMDBinOp::print(ostream &os) const {
     str = "x86.avx2.pmadd.wd ";
   case x86_avx2_pmul_hr_sw:
     str = "x86.avx2.pmul.hr.sw ";
+  case x86_avx2_pmulh_w:
+    str = "x86.avx2.pmulh.w ";
   }
 
   os << getName() << " = " << str << *a << ", " << *b;
@@ -2788,7 +2793,8 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   }
   case x86_avx2_pavg_b:
   case x86_avx2_pavg_w:
-  case x86_avx2_pmul_hr_sw: {
+  case x86_avx2_pmul_hr_sw:
+  case x86_avx2_pmulh_w: {
     function<expr(const expr&, const expr&)> fn;
     switch (op) {
     case x86_avx2_pavg_b:
@@ -2805,6 +2811,11 @@ StateValue SIMDBinOp::toSMT(State &s) const {
       fn = [&](auto a, auto b) -> expr {
         expr t = (a.sext(16) * b.sext(16)).lshr(expr::mkUInt(14, 32));
         return (t + expr::mkUInt(1, 32)).extract(16, 1);
+      };
+      break;
+    case x86_avx2_pmulh_w:
+      fn = [&](auto a, auto b) -> expr {
+        return (a.sext(16) * b.sext(16)).extract(31, 16);
       };
       break;
     default:
