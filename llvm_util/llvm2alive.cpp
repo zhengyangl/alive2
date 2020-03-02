@@ -676,8 +676,9 @@ public:
         return error(i);
       RETURN_IDENTIFIER(make_unique<Free>(*b, false));
     }
-    case llvm::Intrinsic::x86_mmx_packssdw:
     case llvm::Intrinsic::x86_sse2_pavg_b:
+    case llvm::Intrinsic::x86_avx2_mpsadbw:
+    case llvm::Intrinsic::x86_avx2_packssdw:
     {
       PARSE_BINOP();
       SIMDBinOp::Op op;
@@ -686,6 +687,8 @@ public:
         op = SIMDBinOp::x86_sse2_pavg_b; break;
       case llvm::Intrinsic::x86_avx2_mpsadbw:
         op = SIMDBinOp::x86_avx2_mpsadbw; break;
+      case llvm::Intrinsic::x86_avx2_packssdw:
+        op = SIMDBinOp::x86_avx2_packssdw; break;
 
       default: UNREACHABLE();
       }
