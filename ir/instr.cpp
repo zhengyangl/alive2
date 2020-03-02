@@ -2582,24 +2582,24 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
 }
 
 static array<pair<unsigned, unsigned>, 4> op0_shape = {
-  /* x86_sse2_pavg_b */   make_pair(16, 8),
   /* x86_avx2_mpsadbw */  make_pair(32, 8),
   /* x86_avx2_packssdw */ make_pair(8, 32),
   /* x86_avx2_packsswb */ make_pair(16, 16),
+  /* x86_avx2_pavg_b */   make_pair(32, 8),
 };
 
 static array<pair<unsigned, unsigned>, 4> op1_shape = {
-  /* x86_sse2_pavg_b */   make_pair(16, 8),
   /* x86_avx2_mpsadbw */  make_pair(32, 8),
   /* x86_avx2_packssdw */ make_pair(8, 32),
   /* x86_avx2_packsswb */ make_pair(16, 16),
+  /* x86_avx2_pavg_b */   make_pair(32, 8),
 };
 
 static array<pair<unsigned, unsigned>, 4> ret_shape = {
-  /* x86_sse2_pavg_b */   make_pair(16, 8),
   /* x86_avx2_mpsadbw */  make_pair(16, 16),
   /* x86_avx2_packssdw */ make_pair(16, 16),
   /* x86_avx2_packsswb */ make_pair(32, 8),
+  /* x86_avx2_pavg_b */   make_pair(32, 8),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2614,9 +2614,6 @@ void SIMDBinOp::rauw(const Value &what, Value &with) {
 void SIMDBinOp::print(ostream &os) const {
   const char *str = nullptr;
   switch (op) {
-  case x86_sse2_pavg_b:
-    str = "x86.sse2.pavg.b ";
-    break;
   case x86_avx2_mpsadbw:
     str = "x86.avx2.mpsadbw ";
     break;
@@ -2625,6 +2622,9 @@ void SIMDBinOp::print(ostream &os) const {
     break;
   case x86_avx2_packsswb:
     str = "x86.avx2.packsswb ";
+    break;
+  case x86_avx2_pavg_b:
+    str = "x86.avx2.pavg.b ";
     break;
   }
 
@@ -2640,15 +2640,6 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   vector<StateValue> vals;
 
   switch (op) {
-  case x86_sse2_pavg_b:
-    for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
-      auto ai = ty->extract(vect1, i);
-      auto bi = ty->extract(vect2, i);
-      auto one = expr::mkUInt(1, 8);
-      vals.emplace_back((ai.value + bi.value + one).lshr(one),
-                        ai.non_poison && bi.non_poison);
-    }
-    break;
   case x86_avx2_mpsadbw:
     // TODO
     UNREACHABLE();
@@ -2698,6 +2689,15 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     }
     break;
   }
+  case x86_avx2_pavg_b:
+    for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
+      auto ai = ty->extract(vect1, i);
+      auto bi = ty->extract(vect2, i);
+      auto one = expr::mkUInt(1, 8);
+      vals.emplace_back((ai.value + bi.value + one).lshr(one),
+                        ai.non_poison && bi.non_poison);
+    }
+    break;
   }
   return ty->aggregateVals(vals);
 }
