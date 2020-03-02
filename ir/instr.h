@@ -655,7 +655,8 @@ public:
             x86_avx2_packusdw,
             x86_avx2_packuswb,
             x86_avx2_pavg_b,
-            x86_avx2_pavg_w };
+            x86_avx2_pavg_w,
+            x86_avx2_phadd_d };
 
 private:
   Value *a, *b;

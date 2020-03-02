@@ -2581,31 +2581,35 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 6> op0_shape = {
+static array<pair<unsigned, unsigned>, 7> op0_shape = {
   /* x86_avx2_packssdw */ make_pair(8, 32),
   /* x86_avx2_packsswb */ make_pair(16, 16),
   /* x86_avx2_packusdw */ make_pair(8, 32),
   /* x86_avx2_packuswb */ make_pair(16, 16),
   /* x86_avx2_pavg_b */   make_pair(32, 8),
   /* x86_avx2_pavg_w */   make_pair(16, 16),
+  /* x86_avx2_phadd_d */  make_pair(8, 32),
+
 };
 
-static array<pair<unsigned, unsigned>, 6> op1_shape = {
+static array<pair<unsigned, unsigned>, 7> op1_shape = {
   /* x86_avx2_packssdw */ make_pair(8, 32),
   /* x86_avx2_packsswb */ make_pair(16, 16),
   /* x86_avx2_packusdw */ make_pair(8, 32),
   /* x86_avx2_packuswb */ make_pair(16, 16),
   /* x86_avx2_pavg_b */   make_pair(32, 8),
   /* x86_avx2_pavg_w */   make_pair(16, 16),
+  /* x86_avx2_phadd_d */  make_pair(8, 32),
 };
 
-static array<pair<unsigned, unsigned>, 6> ret_shape = {
+static array<pair<unsigned, unsigned>, 7> ret_shape = {
   /* x86_avx2_packssdw */ make_pair(16, 16),
   /* x86_avx2_packsswb */ make_pair(32, 8),
   /* x86_avx2_packusdw */ make_pair(16, 16),
   /* x86_avx2_packuswb */ make_pair(32, 8),
   /* x86_avx2_pavg_b */   make_pair(32, 8),
   /* x86_avx2_pavg_w */   make_pair(16, 16),
+  /* x86_avx2_phadd_d */  make_pair(8, 32),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2637,6 +2641,9 @@ void SIMDBinOp::print(ostream &os) const {
     break;
   case x86_avx2_pavg_w:
     str = "x86.avx2.pavg.w ";
+    break;
+  case x86_avx2_phadd_d:
+    str = "x86.avx2.phadd.d ";
     break;
   }
 
@@ -2746,7 +2753,35 @@ StateValue SIMDBinOp::toSMT(State &s) const {
                         ai.non_poison && bi.non_poison);
     }
     break;
+
+  case x86_avx2_phadd_d:
+    for (unsigned i = 0, e = 2; i != e; ++i) {
+      auto ai1 = aty->extract(vect1, 2 * i);
+      auto ai2 = aty->extract(vect1, 2 * i + 1);
+      vals.emplace_back(ai1.value + ai2.value,
+                        ai1.non_poison && ai2.non_poison);
+    }
+    for (unsigned i = 0, e = 2; i != e; ++i) {
+      auto bi1 = bty->extract(vect2, 2 * i);
+      auto bi2 = bty->extract(vect2, 2 * i + 1);
+      vals.emplace_back(bi1.value + bi2.value,
+                        bi1.non_poison && bi2.non_poison);
+    }
+    for (unsigned i = 0, e = 2; i != e; ++i) {
+      auto ai1 = aty->extract(vect1, 2 * i + 4);
+      auto ai2 = aty->extract(vect1, 2 * i + 5);
+      vals.emplace_back(ai1.value + ai2.value,
+                        ai1.non_poison && ai2.non_poison);
+    }
+    for (unsigned i = 0, e = 2; i != e; ++i) {
+      auto bi1 = bty->extract(vect2, 2 * i + 4);
+      auto bi2 = bty->extract(vect2, 2 * i + 5);
+      vals.emplace_back(bi1.value + bi2.value,
+                        bi1.non_poison && bi2.non_poison);
+    }
+    break;
   }
+
   return ty->aggregateVals(vals);
 }
 
