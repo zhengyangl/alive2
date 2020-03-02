@@ -2581,25 +2581,28 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 4> op0_shape = {
+static array<pair<unsigned, unsigned>, 5> op0_shape = {
   /* x86_avx2_mpsadbw */  make_pair(32, 8),
   /* x86_avx2_packssdw */ make_pair(8, 32),
   /* x86_avx2_packsswb */ make_pair(16, 16),
   /* x86_avx2_pavg_b */   make_pair(32, 8),
+  /* x86_avx2_pavg_w */   make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 4> op1_shape = {
+static array<pair<unsigned, unsigned>, 5> op1_shape = {
   /* x86_avx2_mpsadbw */  make_pair(32, 8),
   /* x86_avx2_packssdw */ make_pair(8, 32),
   /* x86_avx2_packsswb */ make_pair(16, 16),
   /* x86_avx2_pavg_b */   make_pair(32, 8),
+  /* x86_avx2_pavg_w */   make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 4> ret_shape = {
+static array<pair<unsigned, unsigned>, 5> ret_shape = {
   /* x86_avx2_mpsadbw */  make_pair(16, 16),
   /* x86_avx2_packssdw */ make_pair(16, 16),
   /* x86_avx2_packsswb */ make_pair(32, 8),
   /* x86_avx2_pavg_b */   make_pair(32, 8),
+  /* x86_avx2_pavg_w */   make_pair(16, 16),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2625,6 +2628,9 @@ void SIMDBinOp::print(ostream &os) const {
     break;
   case x86_avx2_pavg_b:
     str = "x86.avx2.pavg.b ";
+    break;
+  case x86_avx2_pavg_w:
+    str = "x86.avx2.pavg.w ";
     break;
   }
 
@@ -2690,10 +2696,11 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     break;
   }
   case x86_avx2_pavg_b:
+  case x86_avx2_pavg_w:
     for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
       auto ai = ty->extract(vect1, i);
       auto bi = ty->extract(vect2, i);
-      auto one = expr::mkUInt(1, 8);
+      auto one = expr::mkUInt(1, (op == x86_avx2_pavg_b ? 8 : 16 ));
       vals.emplace_back((ai.value + bi.value + one).lshr(one),
                         ai.non_poison && bi.non_poison);
     }
