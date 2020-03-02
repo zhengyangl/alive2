@@ -676,21 +676,24 @@ public:
         return error(i);
       RETURN_IDENTIFIER(make_unique<Free>(*b, false));
     }
-    case llvm::Intrinsic::x86_avx2_mpsadbw:
     case llvm::Intrinsic::x86_avx2_packssdw:
     case llvm::Intrinsic::x86_avx2_packsswb:
+    case llvm::Intrinsic::x86_avx2_packusdw:
+    case llvm::Intrinsic::x86_avx2_packuswb:
     case llvm::Intrinsic::x86_avx2_pavg_b:
     case llvm::Intrinsic::x86_avx2_pavg_w:
     {
       PARSE_BINOP();
       SIMDBinOp::Op op;
       switch (i.getIntrinsicID()) {
-      case llvm::Intrinsic::x86_avx2_mpsadbw:
-        op = SIMDBinOp::x86_avx2_mpsadbw; break;
       case llvm::Intrinsic::x86_avx2_packssdw:
         op = SIMDBinOp::x86_avx2_packssdw; break;
       case llvm::Intrinsic::x86_avx2_packsswb:
         op = SIMDBinOp::x86_avx2_packsswb; break;
+      case llvm::Intrinsic::x86_avx2_packusdw:
+        op = SIMDBinOp::x86_avx2_packusdw; break;
+      case llvm::Intrinsic::x86_avx2_packuswb:
+        op = SIMDBinOp::x86_avx2_packuswb; break;
       case llvm::Intrinsic::x86_avx2_pavg_b:
         op = SIMDBinOp::x86_avx2_pavg_b; break;
       case llvm::Intrinsic::x86_avx2_pavg_w:
