@@ -684,6 +684,7 @@ public:
     case llvm::Intrinsic::x86_avx2_pavg_w:
     case llvm::Intrinsic::x86_avx2_phadd_d:
     case llvm::Intrinsic::x86_avx2_phadd_sw:
+    case llvm::Intrinsic::x86_avx2_phadd_w:
     {
       PARSE_BINOP();
       SIMDBinOp::Op op;
@@ -704,6 +705,8 @@ public:
         op = SIMDBinOp::x86_avx2_phadd_d; break;
       case llvm::Intrinsic::x86_avx2_phadd_sw:
         op = SIMDBinOp::x86_avx2_phadd_sw; break;
+      case llvm::Intrinsic::x86_avx2_phadd_w:
+        op = SIMDBinOp::x86_avx2_phadd_w; break;
 
       default: UNREACHABLE();
       }

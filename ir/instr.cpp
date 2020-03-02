@@ -2581,7 +2581,7 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 8> op0_shape = {
+static array<pair<unsigned, unsigned>, 9> op0_shape = {
   /* x86_avx2_packssdw */ make_pair(8, 32),
   /* x86_avx2_packsswb */ make_pair(16, 16),
   /* x86_avx2_packusdw */ make_pair(8, 32),
@@ -2590,9 +2590,10 @@ static array<pair<unsigned, unsigned>, 8> op0_shape = {
   /* x86_avx2_pavg_w */   make_pair(16, 16),
   /* x86_avx2_phadd_d */  make_pair(8, 32),
   /* x86_avx2_phadd_sw */ make_pair(16, 16),
+  /* x86_avx2_phadd_w */  make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 8> op1_shape = {
+static array<pair<unsigned, unsigned>, 9> op1_shape = {
   /* x86_avx2_packssdw */ make_pair(8, 32),
   /* x86_avx2_packsswb */ make_pair(16, 16),
   /* x86_avx2_packusdw */ make_pair(8, 32),
@@ -2601,9 +2602,10 @@ static array<pair<unsigned, unsigned>, 8> op1_shape = {
   /* x86_avx2_pavg_w */   make_pair(16, 16),
   /* x86_avx2_phadd_d */  make_pair(8, 32),
   /* x86_avx2_phadd_sw */ make_pair(16, 16),
+  /* x86_avx2_phadd_w */  make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 8> ret_shape = {
+static array<pair<unsigned, unsigned>, 9> ret_shape = {
   /* x86_avx2_packssdw */ make_pair(16, 16),
   /* x86_avx2_packsswb */ make_pair(32, 8),
   /* x86_avx2_packusdw */ make_pair(16, 16),
@@ -2612,6 +2614,7 @@ static array<pair<unsigned, unsigned>, 8> ret_shape = {
   /* x86_avx2_pavg_w */   make_pair(16, 16),
   /* x86_avx2_phadd_d */  make_pair(8, 32),
   /* x86_avx2_phadd_sw */ make_pair(16, 16),
+  /* x86_avx2_phadd_w */  make_pair(16, 16),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2649,6 +2652,9 @@ void SIMDBinOp::print(ostream &os) const {
     break;
   case x86_avx2_phadd_sw:
     str = "x86.avx2.phadd.sw ";
+    break;
+  case x86_avx2_phadd_w:
+    str = "x86.avx2.phadd.w ";
     break;
   }
 
@@ -2809,6 +2815,33 @@ StateValue SIMDBinOp::toSMT(State &s) const {
       auto bi1 = bty->extract(vect2, 2 * i + 8);
       auto bi2 = bty->extract(vect2, 2 * i + 9);
       vals.emplace_back(bi1.value.sadd_sat(bi2.value),
+                        bi1.non_poison && bi2.non_poison);
+    }
+    break;
+
+  case x86_avx2_phadd_w:
+    for (unsigned i = 0, e = 4; i != e; ++i) {
+      auto ai1 = aty->extract(vect1, 2 * i);
+      auto ai2 = aty->extract(vect1, 2 * i + 1);
+      vals.emplace_back(ai1.value + ai2.value,
+                        ai1.non_poison && ai2.non_poison);
+    }
+    for (unsigned i = 0, e = 4; i != e; ++i) {
+      auto bi1 = bty->extract(vect2, 2 * i);
+      auto bi2 = bty->extract(vect2, 2 * i + 1);
+      vals.emplace_back(bi1.value + bi2.value,
+                        bi1.non_poison && bi2.non_poison);
+    }
+    for (unsigned i = 0, e = 4; i != e; ++i) {
+      auto ai1 = aty->extract(vect1, 2 * i + 8);
+      auto ai2 = aty->extract(vect1, 2 * i + 9);
+      vals.emplace_back(ai1.value + ai2.value,
+                        ai1.non_poison && ai2.non_poison);
+    }
+    for (unsigned i = 0, e = 4; i != e; ++i) {
+      auto bi1 = bty->extract(vect2, 2 * i + 8);
+      auto bi2 = bty->extract(vect2, 2 * i + 9);
+      vals.emplace_back(bi1.value + bi2.value,
                         bi1.non_poison && bi2.non_poison);
     }
     break;
