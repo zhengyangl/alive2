@@ -2581,49 +2581,52 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 12> op0_shape = {
-  /* x86_avx2_packssdw */ make_pair(8, 32),
-  /* x86_avx2_packsswb */ make_pair(16, 16),
-  /* x86_avx2_packusdw */ make_pair(8, 32),
-  /* x86_avx2_packuswb */ make_pair(16, 16),
-  /* x86_avx2_pavg_b */   make_pair(32, 8),
-  /* x86_avx2_pavg_w */   make_pair(16, 16),
-  /* x86_avx2_phadd_d */  make_pair(8, 32),
-  /* x86_avx2_phadd_sw */ make_pair(16, 16),
-  /* x86_avx2_phadd_w */  make_pair(16, 16),
-  /* x86_avx2_phsub_d */  make_pair(8, 32),
-  /* x86_avx2_phsub_sw */ make_pair(16, 16),
-  /* x86_avx2_phsub_w */  make_pair(16, 16),
+static array<pair<unsigned, unsigned>, 13> op0_shape = {
+  /* x86_avx2_packssdw */    make_pair(8, 32),
+  /* x86_avx2_packsswb */    make_pair(16, 16),
+  /* x86_avx2_packusdw */    make_pair(8, 32),
+  /* x86_avx2_packuswb */    make_pair(16, 16),
+  /* x86_avx2_pavg_b */      make_pair(32, 8),
+  /* x86_avx2_pavg_w */      make_pair(16, 16),
+  /* x86_avx2_phadd_d */     make_pair(8, 32),
+  /* x86_avx2_phadd_sw */    make_pair(16, 16),
+  /* x86_avx2_phadd_w */     make_pair(16, 16),
+  /* x86_avx2_phsub_d */     make_pair(8, 32),
+  /* x86_avx2_phsub_sw */    make_pair(16, 16),
+  /* x86_avx2_phsub_w */     make_pair(16, 16),
+  /* x86_avx2_pmadd_ub_sw */ make_pair(32, 8),
 };
 
-static array<pair<unsigned, unsigned>, 12> op1_shape = {
-  /* x86_avx2_packssdw */ make_pair(8, 32),
-  /* x86_avx2_packsswb */ make_pair(16, 16),
-  /* x86_avx2_packusdw */ make_pair(8, 32),
-  /* x86_avx2_packuswb */ make_pair(16, 16),
-  /* x86_avx2_pavg_b */   make_pair(32, 8),
-  /* x86_avx2_pavg_w */   make_pair(16, 16),
-  /* x86_avx2_phadd_d */  make_pair(8, 32),
-  /* x86_avx2_phadd_sw */ make_pair(16, 16),
-  /* x86_avx2_phadd_w */  make_pair(16, 16),
-  /* x86_avx2_phsub_d */  make_pair(8, 32),
-  /* x86_avx2_phsub_sw */ make_pair(16, 16),
-  /* x86_avx2_phsub_w */  make_pair(16, 16),
+static array<pair<unsigned, unsigned>, 13> op1_shape = {
+  /* x86_avx2_packssdw */    make_pair(8, 32),
+  /* x86_avx2_packsswb */    make_pair(16, 16),
+  /* x86_avx2_packusdw */    make_pair(8, 32),
+  /* x86_avx2_packuswb */    make_pair(16, 16),
+  /* x86_avx2_pavg_b */      make_pair(32, 8),
+  /* x86_avx2_pavg_w */      make_pair(16, 16),
+  /* x86_avx2_phadd_d */     make_pair(8, 32),
+  /* x86_avx2_phadd_sw */    make_pair(16, 16),
+  /* x86_avx2_phadd_w */     make_pair(16, 16),
+  /* x86_avx2_phsub_d */     make_pair(8, 32),
+  /* x86_avx2_phsub_sw */    make_pair(16, 16),
+  /* x86_avx2_phsub_w */     make_pair(16, 16),
+  /* x86_avx2_pmadd_ub_sw */ make_pair(32, 8),
 };
 
-static array<pair<unsigned, unsigned>, 12> ret_shape = {
-  /* x86_avx2_packssdw */ make_pair(16, 16),
-  /* x86_avx2_packsswb */ make_pair(32, 8),
-  /* x86_avx2_packusdw */ make_pair(16, 16),
-  /* x86_avx2_packuswb */ make_pair(32, 8),
-  /* x86_avx2_pavg_b */   make_pair(32, 8),
-  /* x86_avx2_pavg_w */   make_pair(16, 16),
-  /* x86_avx2_phadd_d */  make_pair(8, 32),
-  /* x86_avx2_phadd_sw */ make_pair(16, 16),
-  /* x86_avx2_phadd_w */  make_pair(16, 16),
-  /* x86_avx2_phsub_d */  make_pair(8, 32),
-  /* x86_avx2_phsub_sw */ make_pair(16, 16),
-  /* x86_avx2_phsub_w */  make_pair(16, 16),
+static array<pair<unsigned, unsigned>, 13> ret_shape = {
+  /* x86_avx2_packssdw */    make_pair(16, 16),
+  /* x86_avx2_packsswb */    make_pair(32, 8),
+  /* x86_avx2_packusdw */    make_pair(16, 16),
+  /* x86_avx2_packuswb */    make_pair(32, 8),
+  /* x86_avx2_pavg_b */      make_pair(32, 8),
+  /* x86_avx2_pavg_w */      make_pair(16, 16),
+  /* x86_avx2_phadd_d */     make_pair(8, 32),
+  /* x86_avx2_phadd_sw */    make_pair(16, 16),
+  /* x86_avx2_phadd_w */     make_pair(16, 16),
+  /* x86_avx2_phsub_d */     make_pair(8, 32),
+  /* x86_avx2_phsub_sw */    make_pair(16, 16),
+  /* x86_avx2_phsub_w */     make_pair(16, 16),
+  /* x86_avx2_pmadd_ub_sw */ make_pair(16, 16),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2674,6 +2677,8 @@ void SIMDBinOp::print(ostream &os) const {
   case x86_avx2_phsub_w:
     str = "x86.avx2.phsub.w ";
     break;
+  case x86_avx2_pmadd_ub_sw:
+    str = "x86.avx2.pmadd.ub.sw ";
   }
 
   os << getName() << " = " << str << *a << ", " << *b;
@@ -2771,18 +2776,37 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     }
     break;
   }
-
   case x86_avx2_pavg_b:
-  case x86_avx2_pavg_w:
+  case x86_avx2_pavg_w: {
+    function<expr(const expr&, const expr&)> fn;
+    fn = [&](auto a, auto b) -> expr {
+      auto one = expr::mkUInt(1, (op == x86_avx2_pavg_b ? 8 : 16 ));
+      return (a + b + one).lshr(one);
+    };
     for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
       auto ai = ty->extract(vect1, i);
       auto bi = ty->extract(vect2, i);
-      auto one = expr::mkUInt(1, (op == x86_avx2_pavg_b ? 8 : 16 ));
-      vals.emplace_back((ai.value + bi.value + one).lshr(one),
+      vals.emplace_back(fn(ai.value, bi.value),
                         ai.non_poison && bi.non_poison);
     }
     break;
+  }
+  case x86_avx2_pmadd_ub_sw: {
+    for (unsigned i = 0, e = aty->numElementsConst(); i < e; i = i + 2) {
+      auto ai = aty->extract(vect1, i);
+      auto bi = bty->extract(vect2, i);
+      auto aj = aty->extract(vect1, i + 1);
+      auto bj = bty->extract(vect2, i + 1);
 
+      expr v1 = ai.value.sext(8) * bi.value.sext(8);
+      expr v2 = aj.value.sext(8) * bj.value.sext(8);
+      expr np = ai.non_poison && bi.non_poison &&
+                aj.non_poison && bj.non_poison;
+
+      vals.emplace_back(v1.sadd_sat(v2), move(np));
+    }
+    break;
+  }
   case x86_avx2_phadd_d:
   case x86_avx2_phsub_d:
   case x86_avx2_phadd_sw:

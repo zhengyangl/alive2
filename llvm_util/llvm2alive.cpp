@@ -688,6 +688,7 @@ public:
     case llvm::Intrinsic::x86_avx2_phsub_d:
     case llvm::Intrinsic::x86_avx2_phsub_sw:
     case llvm::Intrinsic::x86_avx2_phsub_w:
+    case llvm::Intrinsic::x86_avx2_pmadd_ub_sw:
     {
       PARSE_BINOP();
       SIMDBinOp::Op op;
@@ -716,7 +717,8 @@ public:
         op = SIMDBinOp::x86_avx2_phsub_sw; break;
       case llvm::Intrinsic::x86_avx2_phsub_w:
         op = SIMDBinOp::x86_avx2_phsub_w; break;
-
+      case llvm::Intrinsic::x86_avx2_pmadd_ub_sw:
+        op = SIMDBinOp::x86_avx2_pmadd_ub_sw; break;
       default: UNREACHABLE();
       }
       RETURN_IDENTIFIER(make_unique<SIMDBinOp>(*ty, value_name(i), *a, *b, op));
