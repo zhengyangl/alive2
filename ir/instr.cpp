@@ -2581,7 +2581,7 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 20> op0_shape = {
+static array<pair<unsigned, unsigned>, 23> op0_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2602,9 +2602,12 @@ static array<pair<unsigned, unsigned>, 20> op0_shape = {
   /* x86_avx2_psign_b */     make_pair(32, 8),
   /* x86_avx2_psign_d */     make_pair(8, 32),
   /* x86_avx2_psign_w */     make_pair(16, 16),
+  /* x86_avx2_psll_d */      make_pair(8, 32),
+  /* x86_avx2_psll_q */      make_pair(4, 64),
+  /* x86_avx2_psll_w */      make_pair(16, 16),
 };
 
-static array<pair<unsigned, unsigned>, 20> op1_shape = {
+static array<pair<unsigned, unsigned>, 23> op1_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2625,9 +2628,12 @@ static array<pair<unsigned, unsigned>, 20> op1_shape = {
   /* x86_avx2_psign_b */     make_pair(32, 8),
   /* x86_avx2_psign_d */     make_pair(8, 32),
   /* x86_avx2_psign_w */     make_pair(16, 16),
+  /* x86_avx2_psll_d */      make_pair(4, 32),
+  /* x86_avx2_psll_q */      make_pair(2, 64),
+  /* x86_avx2_psll_w */      make_pair(8, 16),
 };
 
-static array<pair<unsigned, unsigned>, 20> ret_shape = {
+static array<pair<unsigned, unsigned>, 23> ret_shape = {
   /* x86_avx2_packssdw */    make_pair(16, 16),
   /* x86_avx2_packsswb */    make_pair(32, 8),
   /* x86_avx2_packusdw */    make_pair(16, 16),
@@ -2648,6 +2654,9 @@ static array<pair<unsigned, unsigned>, 20> ret_shape = {
   /* x86_avx2_psign_b */     make_pair(32, 8),
   /* x86_avx2_psign_d */     make_pair(8, 32),
   /* x86_avx2_psign_w */     make_pair(16, 16),
+  /* x86_avx2_psll_d */      make_pair(8, 32),
+  /* x86_avx2_psll_q */      make_pair(4, 64),
+  /* x86_avx2_psll_w */      make_pair(16, 16),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2722,6 +2731,16 @@ void SIMDBinOp::print(ostream &os) const {
   case x86_avx2_psign_w:
     str = "x86.avx2.psign.w ";
     break;
+  case x86_avx2_psll_d:
+    str = "x86.avx2.psll.d ";
+    break;
+  case x86_avx2_psll_q:
+    str = "x86.avx2.psll.q ";
+    break;
+  case x86_avx2_psll_w:
+    str = "x86.avx2.psll.w ";
+    break;
+
   }
 
   os << getName() << " = " << str << *a << ", " << *b;
@@ -2730,7 +2749,7 @@ void SIMDBinOp::print(ostream &os) const {
 StateValue SIMDBinOp::toSMT(State &s) const {
   auto ty = getType().getAsAggregateType();
   auto aty = a->getType().getAsAggregateType();
-  auto bty = a->getType().getAsAggregateType();
+  auto bty = b->getType().getAsAggregateType();
   auto &vect1 = s[*a];
   auto &vect2 = s[*b];
   vector<StateValue> vals;
@@ -2876,6 +2895,26 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     }
     break;
   }
+  case x86_avx2_psll_d:
+  case x86_avx2_psll_q:
+  case x86_avx2_psll_w: {
+    unsigned bits = op0_shape[op].second;
+    expr np = true;
+    for (unsigned i = 0, e = bty->numElementsConst(); i < e; ++i) {
+      np = np && bty->extract(vect2, i).non_poison;
+    }
+    expr zero = expr::mkUInt(0, op0_shape[op].second);
+    for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
+      auto ai = aty->extract(vect1, i);
+      expr t = vect2.value.uge(expr::mkUInt(bits, bits * op1_shape[op].first));
+      expr v = expr::mkIf(move(t),
+                          move(zero),
+                          ai.value << vect2.value.trunc(bits));
+      vals.emplace_back(move(v), np && ai.non_poison);
+    }
+    break;
+  }
+
   case x86_avx2_pmadd_ub_sw:
   case x86_avx2_pmadd_wd: {
     for (unsigned i = 0, e = aty->numElementsConst(); i < e; i = i + 2) {

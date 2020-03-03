@@ -669,7 +669,10 @@ public:
             x86_avx2_pmulhu_w,
             x86_avx2_psign_b,
             x86_avx2_psign_d,
-            x86_avx2_psign_w };
+            x86_avx2_psign_w,
+            x86_avx2_psll_d,
+            x86_avx2_psll_q,
+            x86_avx2_psll_w, };
 private:
   Value *a, *b;
   Op op;
