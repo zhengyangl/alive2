@@ -676,7 +676,13 @@ public:
             x86_avx2_psllv_d,
             x86_avx2_psllv_d_256,
             x86_avx2_psllv_q,
-            x86_avx2_psllv_q_256, };
+            x86_avx2_psllv_q_256,
+            x86_avx2_psrav_d,
+            x86_avx2_psrav_d_256,
+            x86_avx2_psrlv_d,
+            x86_avx2_psrlv_d_256,
+            x86_avx2_psrlv_q,
+            x86_avx2_psrlv_q_256 };
 private:
   Value *a, *b;
   Op op;

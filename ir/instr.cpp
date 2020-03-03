@@ -2581,7 +2581,7 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 27> op0_shape = {
+static array<pair<unsigned, unsigned>, 33> op0_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2609,9 +2609,15 @@ static array<pair<unsigned, unsigned>, 27> op0_shape = {
   /* x86_avx2_psllv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psllv_q */     make_pair(2, 64),
   /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
+  /* x86_avx2_psrav_d */     make_pair(4, 32),
+  /* x86_avx2_psrav_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrlv_d */     make_pair(4, 32),
+  /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrlv_q */     make_pair(2, 64),
+  /* x86_avx2_psrlv_q_256 */ make_pair(4, 64),
 };
 
-static array<pair<unsigned, unsigned>, 27> op1_shape = {
+static array<pair<unsigned, unsigned>, 33> op1_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2639,9 +2645,15 @@ static array<pair<unsigned, unsigned>, 27> op1_shape = {
   /* x86_avx2_psllv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psllv_q */     make_pair(2, 64),
   /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
+  /* x86_avx2_psrav_d */     make_pair(4, 32),
+  /* x86_avx2_psrav_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrlv_d */     make_pair(4, 32),
+  /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrlv_q */     make_pair(2, 64),
+  /* x86_avx2_psrlv_q_256 */ make_pair(4, 64),
 };
 
-static array<pair<unsigned, unsigned>, 27> ret_shape = {
+static array<pair<unsigned, unsigned>, 33> ret_shape = {
   /* x86_avx2_packssdw */    make_pair(16, 16),
   /* x86_avx2_packsswb */    make_pair(32, 8),
   /* x86_avx2_packusdw */    make_pair(16, 16),
@@ -2669,6 +2681,12 @@ static array<pair<unsigned, unsigned>, 27> ret_shape = {
   /* x86_avx2_psllv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psllv_q */     make_pair(2, 64),
   /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
+  /* x86_avx2_psrav_d */     make_pair(4, 32),
+  /* x86_avx2_psrav_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrlv_d */     make_pair(4, 32),
+  /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrlv_q */     make_pair(2, 64),
+  /* x86_avx2_psrlv_q_256 */ make_pair(4, 64),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2763,6 +2781,24 @@ void SIMDBinOp::print(ostream &os) const {
     break;
   case x86_avx2_psllv_q_256:
     str = "x86.avx2.psllv.q.256 ";
+    break;
+  case x86_avx2_psrav_d:
+    str = "x86.avx2.psrav.d ";
+    break;
+  case x86_avx2_psrav_d_256:
+    str = "x86.avx2.psrav.d.256 ";
+    break;
+  case x86_avx2_psrlv_d:
+    str = "x86.avx2.psrlv.d ";
+    break;
+  case x86_avx2_psrlv_d_256:
+    str = "x86.avx2.psrlv.d.256 ";
+    break;
+  case x86_avx2_psrlv_q:
+    str = "x86.avx2.psrlv.q ";
+    break;
+  case x86_avx2_psrlv_q_256:
+    str = "x86.avx2.psrlv.q.256 ";
     break;
   }
 
@@ -2872,7 +2908,13 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   case x86_avx2_psllv_d:
   case x86_avx2_psllv_d_256:
   case x86_avx2_psllv_q:
-  case x86_avx2_psllv_q_256: {
+  case x86_avx2_psllv_q_256:
+  case x86_avx2_psrav_d:
+  case x86_avx2_psrav_d_256:
+  case x86_avx2_psrlv_d:
+  case x86_avx2_psrlv_d_256:
+  case x86_avx2_psrlv_q:
+  case x86_avx2_psrlv_q_256: {
     function<expr(const expr&, const expr&)> fn;
     switch (op) {
     case x86_avx2_pavg_b:
@@ -2917,6 +2959,20 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     case x86_avx2_psllv_q_256:
       fn = [&](auto a, auto b) -> expr {
         return a << b;
+      };
+      break;
+    case x86_avx2_psrav_d:
+    case x86_avx2_psrav_d_256:
+      fn = [&](auto a, auto b) -> expr {
+        return a.ashr(b);
+      };
+      break;
+    case x86_avx2_psrlv_d:
+    case x86_avx2_psrlv_d_256:
+    case x86_avx2_psrlv_q:
+    case x86_avx2_psrlv_q_256:
+      fn = [&](auto a, auto b) -> expr {
+        return a.lshr(b);
       };
       break;
     default:
