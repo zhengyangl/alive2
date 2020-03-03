@@ -2581,7 +2581,7 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 33> op0_shape = {
+static array<pair<unsigned, unsigned>, 36> op0_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2611,13 +2611,16 @@ static array<pair<unsigned, unsigned>, 33> op0_shape = {
   /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
   /* x86_avx2_psrav_d */     make_pair(4, 32),
   /* x86_avx2_psrav_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrl_d */      make_pair(8, 32),
+  /* x86_avx2_psrl_q */      make_pair(4, 64),
+  /* x86_avx2_psrl_w */      make_pair(16, 16),
   /* x86_avx2_psrlv_d */     make_pair(4, 32),
   /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psrlv_q */     make_pair(2, 64),
   /* x86_avx2_psrlv_q_256 */ make_pair(4, 64),
 };
 
-static array<pair<unsigned, unsigned>, 33> op1_shape = {
+static array<pair<unsigned, unsigned>, 36> op1_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2647,13 +2650,16 @@ static array<pair<unsigned, unsigned>, 33> op1_shape = {
   /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
   /* x86_avx2_psrav_d */     make_pair(4, 32),
   /* x86_avx2_psrav_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrl_d */      make_pair(4, 32),
+  /* x86_avx2_psrl_q */      make_pair(2, 64),
+  /* x86_avx2_psrl_w */      make_pair(8, 16),
   /* x86_avx2_psrlv_d */     make_pair(4, 32),
   /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psrlv_q */     make_pair(2, 64),
   /* x86_avx2_psrlv_q_256 */ make_pair(4, 64),
 };
 
-static array<pair<unsigned, unsigned>, 33> ret_shape = {
+static array<pair<unsigned, unsigned>, 36> ret_shape = {
   /* x86_avx2_packssdw */    make_pair(16, 16),
   /* x86_avx2_packsswb */    make_pair(32, 8),
   /* x86_avx2_packusdw */    make_pair(16, 16),
@@ -2683,6 +2689,9 @@ static array<pair<unsigned, unsigned>, 33> ret_shape = {
   /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
   /* x86_avx2_psrav_d */     make_pair(4, 32),
   /* x86_avx2_psrav_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psrl_d */      make_pair(8, 32),
+  /* x86_avx2_psrl_q */      make_pair(4, 64),
+  /* x86_avx2_psrl_w */      make_pair(16, 16),
   /* x86_avx2_psrlv_d */     make_pair(4, 32),
   /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psrlv_q */     make_pair(2, 64),
@@ -2787,6 +2796,15 @@ void SIMDBinOp::print(ostream &os) const {
     break;
   case x86_avx2_psrav_d_256:
     str = "x86.avx2.psrav.d.256 ";
+    break;
+  case x86_avx2_psrl_d:
+    str = "x86.avx2.psrl.d ";
+    break;
+  case x86_avx2_psrl_q:
+    str = "x86.avx2.psrl.q ";
+    break;
+  case x86_avx2_psrl_w:
+    str = "x86.avx2.psrl.w ";
     break;
   case x86_avx2_psrlv_d:
     str = "x86.avx2.psrlv.d ";
@@ -2988,7 +3006,10 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   }
   case x86_avx2_psll_d:
   case x86_avx2_psll_q:
-  case x86_avx2_psll_w: {
+  case x86_avx2_psll_w:
+  case x86_avx2_psrl_d:
+  case x86_avx2_psrl_q:
+  case x86_avx2_psrl_w: {
     unsigned bits = op0_shape[op].second;
     expr np = true;
     for (unsigned i = 0, e = bty->numElementsConst(); i < e; ++i) {
@@ -2998,9 +3019,16 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
       auto ai = aty->extract(vect1, i);
       expr t = vect2.value.uge(expr::mkUInt(bits, bits * op1_shape[op].first));
+      expr shift;
+      if (op == x86_avx2_psll_d ||
+          op == x86_avx2_psll_q ||
+          op == x86_avx2_psll_w)
+        shift = ai.value << vect2.value.trunc(bits);
+      else
+        shift = ai.value.lshr(vect2.value.trunc(bits));
       expr v = expr::mkIf(move(t),
                           move(zero),
-                          ai.value << vect2.value.trunc(bits));
+                          move(shift));
       vals.emplace_back(move(v), np && ai.non_poison);
     }
     break;

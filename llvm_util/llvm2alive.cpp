@@ -705,6 +705,9 @@ public:
     case llvm::Intrinsic::x86_avx2_psllv_q_256:
     case llvm::Intrinsic::x86_avx2_psrav_d:
     case llvm::Intrinsic::x86_avx2_psrav_d_256:
+    case llvm::Intrinsic::x86_avx2_psrl_d:
+    case llvm::Intrinsic::x86_avx2_psrl_q:
+    case llvm::Intrinsic::x86_avx2_psrl_w:
     case llvm::Intrinsic::x86_avx2_psrlv_d:
     case llvm::Intrinsic::x86_avx2_psrlv_d_256:
     case llvm::Intrinsic::x86_avx2_psrlv_q:
@@ -771,6 +774,12 @@ public:
         op = SIMDBinOp::x86_avx2_psrav_d; break;
       case llvm::Intrinsic::x86_avx2_psrav_d_256:
         op = SIMDBinOp::x86_avx2_psrav_d_256; break;
+      case llvm::Intrinsic::x86_avx2_psrl_d:
+        op = SIMDBinOp::x86_avx2_psrl_d; break;
+      case llvm::Intrinsic::x86_avx2_psrl_q:
+        op = SIMDBinOp::x86_avx2_psrl_q; break;
+      case llvm::Intrinsic::x86_avx2_psrl_w:
+        op = SIMDBinOp::x86_avx2_psrl_w; break;
       case llvm::Intrinsic::x86_avx2_psrlv_d:
         op = SIMDBinOp::x86_avx2_psrlv_d; break;
       case llvm::Intrinsic::x86_avx2_psrlv_d_256:
