@@ -672,7 +672,11 @@ public:
             x86_avx2_psign_w,
             x86_avx2_psll_d,
             x86_avx2_psll_q,
-            x86_avx2_psll_w, };
+            x86_avx2_psll_w,
+            x86_avx2_psllv_d,
+            x86_avx2_psllv_d_256,
+            x86_avx2_psllv_q,
+            x86_avx2_psllv_q_256, };
 private:
   Value *a, *b;
   Op op;

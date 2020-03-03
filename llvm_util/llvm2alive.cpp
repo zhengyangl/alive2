@@ -699,6 +699,11 @@ public:
     case llvm::Intrinsic::x86_avx2_psll_d:
     case llvm::Intrinsic::x86_avx2_psll_q:
     case llvm::Intrinsic::x86_avx2_psll_w:
+    case llvm::Intrinsic::x86_avx2_psllv_d:
+    case llvm::Intrinsic::x86_avx2_psllv_d_256:
+    case llvm::Intrinsic::x86_avx2_psllv_q:
+    case llvm::Intrinsic::x86_avx2_psllv_q_256:
+
     {
       PARSE_BINOP();
       SIMDBinOp::Op op;
@@ -749,6 +754,14 @@ public:
         op = SIMDBinOp::x86_avx2_psll_q; break;
       case llvm::Intrinsic::x86_avx2_psll_w:
         op = SIMDBinOp::x86_avx2_psll_w; break;
+      case llvm::Intrinsic::x86_avx2_psllv_d:
+        op = SIMDBinOp::x86_avx2_psllv_d; break;
+      case llvm::Intrinsic::x86_avx2_psllv_d_256:
+        op = SIMDBinOp::x86_avx2_psllv_d_256; break;
+      case llvm::Intrinsic::x86_avx2_psllv_q:
+        op = SIMDBinOp::x86_avx2_psllv_q; break;
+      case llvm::Intrinsic::x86_avx2_psllv_q_256:
+        op = SIMDBinOp::x86_avx2_psllv_q_256; break;
 
       default: UNREACHABLE();
       }

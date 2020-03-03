@@ -2581,7 +2581,7 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 23> op0_shape = {
+static array<pair<unsigned, unsigned>, 27> op0_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2605,9 +2605,13 @@ static array<pair<unsigned, unsigned>, 23> op0_shape = {
   /* x86_avx2_psll_d */      make_pair(8, 32),
   /* x86_avx2_psll_q */      make_pair(4, 64),
   /* x86_avx2_psll_w */      make_pair(16, 16),
+  /* x86_avx2_psllv_d */     make_pair(4, 32),
+  /* x86_avx2_psllv_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psllv_q */     make_pair(2, 64),
+  /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
 };
 
-static array<pair<unsigned, unsigned>, 23> op1_shape = {
+static array<pair<unsigned, unsigned>, 27> op1_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2631,9 +2635,13 @@ static array<pair<unsigned, unsigned>, 23> op1_shape = {
   /* x86_avx2_psll_d */      make_pair(4, 32),
   /* x86_avx2_psll_q */      make_pair(2, 64),
   /* x86_avx2_psll_w */      make_pair(8, 16),
+  /* x86_avx2_psllv_d */     make_pair(4, 32),
+  /* x86_avx2_psllv_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psllv_q */     make_pair(2, 64),
+  /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
 };
 
-static array<pair<unsigned, unsigned>, 23> ret_shape = {
+static array<pair<unsigned, unsigned>, 27> ret_shape = {
   /* x86_avx2_packssdw */    make_pair(16, 16),
   /* x86_avx2_packsswb */    make_pair(32, 8),
   /* x86_avx2_packusdw */    make_pair(16, 16),
@@ -2657,6 +2665,10 @@ static array<pair<unsigned, unsigned>, 23> ret_shape = {
   /* x86_avx2_psll_d */      make_pair(8, 32),
   /* x86_avx2_psll_q */      make_pair(4, 64),
   /* x86_avx2_psll_w */      make_pair(16, 16),
+  /* x86_avx2_psllv_d */     make_pair(4, 32),
+  /* x86_avx2_psllv_d_256 */ make_pair(8, 32),
+  /* x86_avx2_psllv_q */     make_pair(2, 64),
+  /* x86_avx2_psllv_q_256 */ make_pair(4, 64),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2740,7 +2752,18 @@ void SIMDBinOp::print(ostream &os) const {
   case x86_avx2_psll_w:
     str = "x86.avx2.psll.w ";
     break;
-
+  case x86_avx2_psllv_d:
+    str = "x86.avx2.psllv.d ";
+    break;
+  case x86_avx2_psllv_d_256:
+    str = "x86.avx2.psllv.d.256 ";
+    break;
+  case x86_avx2_psllv_q:
+    str = "x86.avx2.psllv.q ";
+    break;
+  case x86_avx2_psllv_q_256:
+    str = "x86.avx2.psllv.q.256 ";
+    break;
   }
 
   os << getName() << " = " << str << *a << ", " << *b;
@@ -2845,7 +2868,11 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   case x86_avx2_pmulhu_w:
   case x86_avx2_psign_b:
   case x86_avx2_psign_d:
-  case x86_avx2_psign_w: {
+  case x86_avx2_psign_w:
+  case x86_avx2_psllv_d:
+  case x86_avx2_psllv_d_256:
+  case x86_avx2_psllv_q:
+  case x86_avx2_psllv_q_256: {
     function<expr(const expr&, const expr&)> fn;
     switch (op) {
     case x86_avx2_pavg_b:
@@ -2882,6 +2909,14 @@ StateValue SIMDBinOp::toSMT(State &s) const {
         return expr::mkIf(b.isZero(),
                           move(zero),
                           expr::mkIf(b.isSigned(), zero - a, a));
+      };
+      break;
+    case x86_avx2_psllv_d:
+    case x86_avx2_psllv_d_256:
+    case x86_avx2_psllv_q:
+    case x86_avx2_psllv_q_256:
+      fn = [&](auto a, auto b) -> expr {
+        return a << b;
       };
       break;
     default:
