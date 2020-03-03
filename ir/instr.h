@@ -666,7 +666,10 @@ public:
             x86_avx2_pmadd_wd,
             x86_avx2_pmul_hr_sw,
             x86_avx2_pmulh_w,
-            x86_avx2_pmulhu_w};
+            x86_avx2_pmulhu_w,
+            x86_avx2_psign_b,
+            x86_avx2_psign_d,
+            x86_avx2_psign_w };
 private:
   Value *a, *b;
   Op op;
