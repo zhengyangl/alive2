@@ -2832,86 +2832,40 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   vector<StateValue> vals;
 
   switch (op) {
-  case x86_avx2_packssdw: {
-    auto min = expr::IntSMin(16);
-    auto max = expr::IntSMax(16);
-    for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
-      auto ai = aty->extract(vect1, i);
-      vals.emplace_back(expr::mkIf(ai.value.sle(min.sext(16)),
-                                   min,
-                                   expr::mkIf(ai.value.sge(max.sext(16)),
-                                              max,
-                                              ai.value.trunc(16))),
-                        move(ai.non_poison));
-    }
-    for (unsigned i = 0, e = bty->numElementsConst(); i != e; ++i) {
-      auto bi = bty->extract(vect2, i);
-      vals.emplace_back(expr::mkIf(bi.value.sle(min.sext(16)),
-                                   min,
-                                   expr::mkIf(bi.value.sge(max.sext(16)),
-                                              max,
-                                              bi.value.trunc(16))),
-                        move(bi.non_poison));
-    }
-    break;
-  }
-  case x86_avx2_packsswb: {
-    auto min = expr::IntSMin(8);
-    auto max = expr::IntSMax(8);
-    for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
-      auto ai = aty->extract(vect1, i);
-      vals.emplace_back(expr::mkIf(ai.value.sle(min.sext(8)),
-                                   min,
-                                   expr::mkIf(ai.value.sge(max.sext(8)),
-                                              max,
-                                              ai.value.trunc(8))),
-                        move(ai.non_poison));
-    }
-    for (unsigned i = 0, e = bty->numElementsConst(); i != e; ++i) {
-      auto bi = bty->extract(vect2, i);
-      vals.emplace_back(expr::mkIf(bi.value.sle(min.sext(8)),
-                                   min,
-                                   expr::mkIf(bi.value.sge(max.sext(8)),
-                                              max,
-                                              bi.value.trunc(8))),
-                        move(bi.non_poison));
-    }
-    break;
-  }
-
-  case x86_avx2_packusdw: {
-    auto max = expr::IntUMax(16);
-    for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
-      auto ai = aty->extract(vect1, i);
-      vals.emplace_back(expr::mkIf(ai.value.uge(max.zext(16)),
-                                   max,
-                                   ai.value.trunc(16)),
-                        move(ai.non_poison));
-    }
-    for (unsigned i = 0, e = bty->numElementsConst(); i != e; ++i) {
-      auto bi = bty->extract(vect2, i);
-      vals.emplace_back(expr::mkIf(bi.value.uge(max.zext(16)),
-                                   max,
-                                   bi.value.trunc(16)),
-                        move(bi.non_poison));
-    }
-    break;
-  }
+  case x86_avx2_packssdw:
+  case x86_avx2_packsswb:
+  case x86_avx2_packusdw:
   case x86_avx2_packuswb: {
-    auto max = expr::IntUMax(8);
+    unsigned bw = op == x86_avx2_packssdw || op == x86_avx2_packusdw ? 16 : 8;
+
+    function<expr(const expr&)> fn;
+    fn = [&](auto a) -> expr {
+      switch (op) {
+      case x86_avx2_packssdw:
+      case x86_avx2_packsswb: {
+        auto smin = expr::IntSMin(bw);
+        auto smax = expr::IntSMax(bw);
+        return expr::mkIf(a.sle(smin.sext(bw)), smin,
+                          expr::mkIf(a.sge(smax.sext(bw)),
+                                     smax, a.trunc(bw)));
+      }
+      case x86_avx2_packusdw:
+      case x86_avx2_packuswb: {
+        auto umax = expr::IntUMax(bw);
+        return expr::mkIf(a.uge(umax.zext(bw)), umax, a.trunc(bw));
+      }
+      default:
+        UNREACHABLE();
+      }
+    };
+
     for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
       auto ai = aty->extract(vect1, i);
-      vals.emplace_back(expr::mkIf(ai.value.uge(max.zext(8)),
-                                   max,
-                                   ai.value.trunc(8)),
-                        move(ai.non_poison));
+      vals.emplace_back(fn(ai.value), move(ai.non_poison));
     }
     for (unsigned i = 0, e = bty->numElementsConst(); i != e; ++i) {
       auto bi = bty->extract(vect2, i);
-      vals.emplace_back(expr::mkIf(bi.value.uge(max.zext(8)),
-                                   max,
-                                   bi.value.trunc(8)),
-                        move(bi.non_poison));
+      vals.emplace_back(fn(bi.value), move(bi.non_poison));
     }
     break;
   }
