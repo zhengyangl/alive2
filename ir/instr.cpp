@@ -2581,7 +2581,7 @@ unique_ptr<Instr> ShuffleVector::dup(const string &suffix) const {
                                     *v1, *v2, mask);
 }
 
-static array<pair<unsigned, unsigned>, 36> op0_shape = {
+static array<pair<unsigned, unsigned>, 38> op0_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2618,9 +2618,11 @@ static array<pair<unsigned, unsigned>, 36> op0_shape = {
   /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psrlv_q */     make_pair(2, 64),
   /* x86_avx2_psrlv_q_256 */ make_pair(4, 64),
+  /* x86_bmi_pdep_32 */      make_pair(1, 32),
+  /* x86_bmi_pdep_64 */      make_pair(1, 64),
 };
 
-static array<pair<unsigned, unsigned>, 36> op1_shape = {
+static array<pair<unsigned, unsigned>, 38> op1_shape = {
   /* x86_avx2_packssdw */    make_pair(8, 32),
   /* x86_avx2_packsswb */    make_pair(16, 16),
   /* x86_avx2_packusdw */    make_pair(8, 32),
@@ -2657,9 +2659,11 @@ static array<pair<unsigned, unsigned>, 36> op1_shape = {
   /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psrlv_q */     make_pair(2, 64),
   /* x86_avx2_psrlv_q_256 */ make_pair(4, 64),
+  /* x86_bmi_pdep_32 */      make_pair(1, 32),
+  /* x86_bmi_pdep_64 */      make_pair(1, 64),
 };
 
-static array<pair<unsigned, unsigned>, 36> ret_shape = {
+static array<pair<unsigned, unsigned>, 38> ret_shape = {
   /* x86_avx2_packssdw */    make_pair(16, 16),
   /* x86_avx2_packsswb */    make_pair(32, 8),
   /* x86_avx2_packusdw */    make_pair(16, 16),
@@ -2696,6 +2700,8 @@ static array<pair<unsigned, unsigned>, 36> ret_shape = {
   /* x86_avx2_psrlv_d_256 */ make_pair(8, 32),
   /* x86_avx2_psrlv_q */     make_pair(2, 64),
   /* x86_avx2_psrlv_q_256 */ make_pair(4, 64),
+  /* x86_bmi_pdep_32 */      make_pair(1, 32),
+  /* x86_bmi_pdep_64 */      make_pair(1, 64),
 };
 
 vector<Value*> SIMDBinOp::operands() const {
@@ -2818,6 +2824,12 @@ void SIMDBinOp::print(ostream &os) const {
   case x86_avx2_psrlv_q_256:
     str = "x86.avx2.psrlv.q.256 ";
     break;
+  case x86_bmi_pdep_32:
+    str = "x86.bmi.pdep.32 ";
+    break;
+  case x86_bmi_pdep_64:
+    str = "x86.bmi.pdep.64 ";
+    break;
   }
 
   os << getName() << " = " << str << *a << ", " << *b;
@@ -2827,15 +2839,17 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   auto ty = getType().getAsAggregateType();
   auto aty = a->getType().getAsAggregateType();
   auto bty = b->getType().getAsAggregateType();
-  auto &vect1 = s[*a];
-  auto &vect2 = s[*b];
-  vector<StateValue> vals;
+  auto &op1 = s[*a];
+  auto &op2 = s[*b];
 
   switch (op) {
+  case x86_bmi_pdep_32:
+  case x86_bmi_pdep_64:
   case x86_avx2_packssdw:
   case x86_avx2_packsswb:
   case x86_avx2_packusdw:
   case x86_avx2_packuswb: {
+    vector<StateValue> vals;
     unsigned bw = op == x86_avx2_packssdw || op == x86_avx2_packusdw ? 16 : 8;
 
     function<expr(const expr&)> fn;
@@ -2860,14 +2874,14 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     };
 
     for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
-      auto ai = aty->extract(vect1, i);
+      auto ai = aty->extract(op1, i);
       vals.emplace_back(fn(ai.value), move(ai.non_poison));
     }
     for (unsigned i = 0, e = bty->numElementsConst(); i != e; ++i) {
-      auto bi = bty->extract(vect2, i);
+      auto bi = bty->extract(op2, i);
       vals.emplace_back(fn(bi.value), move(bi.non_poison));
     }
-    break;
+    return ty->aggregateVals(vals);
   }
   case x86_avx2_pavg_b:
   case x86_avx2_pavg_w:
@@ -2887,6 +2901,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   case x86_avx2_psrlv_d_256:
   case x86_avx2_psrlv_q:
   case x86_avx2_psrlv_q_256: {
+    vector<StateValue> vals;
     function<expr(const expr&, const expr&)> fn;
     switch (op) {
     case x86_avx2_pavg_b:
@@ -2951,12 +2966,12 @@ StateValue SIMDBinOp::toSMT(State &s) const {
       UNREACHABLE();
     };
     for (unsigned i = 0, e = ty->numElementsConst(); i != e; ++i) {
-      auto ai = ty->extract(vect1, i);
-      auto bi = ty->extract(vect2, i);
+      auto ai = ty->extract(op1, i);
+      auto bi = ty->extract(op2, i);
       vals.emplace_back(fn(ai.value, bi.value),
                         ai.non_poison && bi.non_poison);
     }
-    break;
+    return ty->aggregateVals(vals);
   }
   case x86_avx2_psll_d:
   case x86_avx2_psll_q:
@@ -2964,37 +2979,38 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   case x86_avx2_psrl_d:
   case x86_avx2_psrl_q:
   case x86_avx2_psrl_w: {
+    vector<StateValue> vals;
     unsigned bits = op0_shape[op].second;
     expr np = true;
     for (unsigned i = 0, e = bty->numElementsConst(); i < e; ++i) {
-      np = np && bty->extract(vect2, i).non_poison;
+      np = np && bty->extract(op2, i).non_poison;
     }
     expr zero = expr::mkUInt(0, op0_shape[op].second);
     for (unsigned i = 0, e = aty->numElementsConst(); i != e; ++i) {
-      auto ai = aty->extract(vect1, i);
-      expr t = vect2.value.uge(expr::mkUInt(bits, bits * op1_shape[op].first));
+      auto ai = aty->extract(op1, i);
+      expr t = op2.value.uge(expr::mkUInt(bits, bits * op1_shape[op].first));
       expr shift;
       if (op == x86_avx2_psll_d ||
           op == x86_avx2_psll_q ||
           op == x86_avx2_psll_w)
-        shift = ai.value << vect2.value.trunc(bits);
+        shift = ai.value << op2.value.trunc(bits);
       else
-        shift = ai.value.lshr(vect2.value.trunc(bits));
+        shift = ai.value.lshr(op2.value.trunc(bits));
       expr v = expr::mkIf(move(t),
                           move(zero),
                           move(shift));
       vals.emplace_back(move(v), np && ai.non_poison);
     }
-    break;
+    return ty->aggregateVals(vals);
   }
-
   case x86_avx2_pmadd_ub_sw:
   case x86_avx2_pmadd_wd: {
+    vector<StateValue> vals;
     for (unsigned i = 0, e = aty->numElementsConst(); i < e; i = i + 2) {
-      auto ai = aty->extract(vect1, i);
-      auto bi = bty->extract(vect2, i);
-      auto aj = aty->extract(vect1, i + 1);
-      auto bj = bty->extract(vect2, i + 1);
+      auto ai = aty->extract(op1, i);
+      auto bi = bty->extract(op2, i);
+      auto aj = aty->extract(op1, i + 1);
+      auto bj = bty->extract(op2, i + 1);
 
       unsigned sext_sz = op == x86_avx2_pmadd_ub_sw ? 8 : 16;
 
@@ -3007,7 +3023,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
       else
         vals.emplace_back(v1 + v2, move(np));
     }
-    break;
+    return ty->aggregateVals(vals);
   }
   case x86_avx2_phadd_d:
   case x86_avx2_phsub_d:
@@ -3015,6 +3031,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   case x86_avx2_phsub_sw:
   case x86_avx2_phadd_w:
   case x86_avx2_phsub_w: {
+    vector<StateValue> vals;
     function<expr(const expr&, const expr&)> fn;
     fn = [&](auto a, auto b) -> expr {
       expr ret;
@@ -3040,54 +3057,60 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     };
     unsigned c = (op == x86_avx2_phadd_d || op == x86_avx2_phsub_d) ? 2 : 4;
     for (unsigned i = 0, e = c; i != e; ++i) {
-      auto ai1 = aty->extract(vect1, 2 * i);
-      auto ai2 = aty->extract(vect1, 2 * i + 1);
+      auto ai1 = aty->extract(op1, 2 * i);
+      auto ai2 = aty->extract(op1, 2 * i + 1);
       vals.emplace_back(fn(ai1.value, ai2.value),
                         ai1.non_poison && ai2.non_poison);
     }
     for (unsigned i = 0, e = c; i != e; ++i) {
-      auto bi1 = bty->extract(vect2, 2 * i);
-      auto bi2 = bty->extract(vect2, 2 * i + 1);
+      auto bi1 = bty->extract(op2, 2 * i);
+      auto bi2 = bty->extract(op2, 2 * i + 1);
       vals.emplace_back(fn(bi1.value, bi2.value),
                         bi1.non_poison && bi2.non_poison);
     }
     for (unsigned i = 0, e = c; i != e; ++i) {
-      auto ai1 = aty->extract(vect1, 2 * i + 2 * c);
-      auto ai2 = aty->extract(vect1, 2 * i + 2 * c + 1);
+      auto ai1 = aty->extract(op1, 2 * i + 2 * c);
+      auto ai2 = aty->extract(op1, 2 * i + 2 * c + 1);
       vals.emplace_back(fn(ai1.value, ai2.value),
                         ai1.non_poison && ai2.non_poison);
     }
     for (unsigned i = 0, e = c; i != e; ++i) {
-      auto bi1 = bty->extract(vect2, 2 * i + 2 * c);
-      auto bi2 = bty->extract(vect2, 2 * i + 2 * c + 1);
+      auto bi1 = bty->extract(op2, 2 * i + 2 * c);
+      auto bi2 = bty->extract(op2, 2 * i + 2 * c + 1);
       vals.emplace_back(fn(bi1.value, bi2.value),
                         bi1.non_poison && bi2.non_poison);
     }
-    break;
+    return ty->aggregateVals(vals);
   }
   }
-
-  return ty->aggregateVals(vals);
+  UNREACHABLE();
 }
 
 expr SIMDBinOp::getTypeConstraints(const Function &f) const {
-  auto op0 = op0_shape[op];
-  auto op1 = op1_shape[op];
-  auto ret = ret_shape[op];
-  return Value::getTypeConstraints() &&
-         getType().enforceVectorType() &&
-         a->getType().enforceVectorType() &&
-         b->getType().enforceVectorType() &&
-         // mask is a vector of i32
-         a->getType().enforceVectorType([op0](auto &ty)
-           { return ty.enforceIntType(op0.second); }) &&
-         b->getType().enforceVectorType([op1](auto &ty)
-           { return ty.enforceIntType(op1.second); }) &&
-         getType().enforceVectorType([ret](auto &ty)
-           { return ty.enforceIntType(ret.second); }) &&
-         a->getType().enforceVectorTypeLength(op0.first) &&
-         b->getType().enforceVectorTypeLength(op1.first) &&
-         getType().enforceVectorTypeLength(ret.first);
+  switch (op) {
+  case x86_bmi_pdep_32:
+  case x86_bmi_pdep_64:
+
+  default:
+    auto op0 = op0_shape[op];
+    auto op1 = op1_shape[op];
+    auto ret = ret_shape[op];
+
+    return Value::getTypeConstraints() &&
+      getType().enforceVectorType() &&
+      a->getType().enforceVectorType() &&
+      b->getType().enforceVectorType() &&
+      // mask is a vector of i32
+      a->getType().enforceVectorType([op0](auto &ty)
+        { return ty.enforceIntType(op0.second); }) &&
+      b->getType().enforceVectorType([op1](auto &ty)
+        { return ty.enforceIntType(op1.second); }) &&
+      getType().enforceVectorType([ret](auto &ty)
+        { return ty.enforceIntType(ret.second); }) &&
+      a->getType().enforceVectorTypeLength(op0.first) &&
+      b->getType().enforceVectorTypeLength(op1.first) &&
+      getType().enforceVectorTypeLength(ret.first);
+  }
 }
 
 unique_ptr<Instr> SIMDBinOp::dup(const string &suffix) const {
