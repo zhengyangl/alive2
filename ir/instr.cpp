@@ -2844,7 +2844,10 @@ StateValue SIMDBinOp::toSMT(State &s) const {
 
   switch (op) {
   case x86_bmi_pdep_32:
-  case x86_bmi_pdep_64:
+  case x86_bmi_pdep_64: {
+    assert (!ty && !aty && !bty);
+    return { op1.value + op2.value, true };
+  }
   case x86_avx2_packssdw:
   case x86_avx2_packsswb:
   case x86_avx2_packusdw:
@@ -3087,16 +3090,25 @@ StateValue SIMDBinOp::toSMT(State &s) const {
 }
 
 expr SIMDBinOp::getTypeConstraints(const Function &f) const {
+  expr instrconstr;  
   switch (op) {
   case x86_bmi_pdep_32:
+    instrconstr = getType().enforceIntOrVectorType(32) &&
+                  getType() == a->getType() &&
+                  getType() == b->getType();
+    break;
   case x86_bmi_pdep_64:
+    instrconstr = getType().enforceIntOrVectorType(64) &&
+                  getType() == a->getType() &&
+                  getType() == b->getType();
+    break;
 
   default:
     auto op0 = op0_shape[op];
     auto op1 = op1_shape[op];
     auto ret = ret_shape[op];
 
-    return Value::getTypeConstraints() &&
+    instrconstr = Value::getTypeConstraints() &&
       getType().enforceVectorType() &&
       a->getType().enforceVectorType() &&
       b->getType().enforceVectorType() &&
@@ -3110,7 +3122,9 @@ expr SIMDBinOp::getTypeConstraints(const Function &f) const {
       a->getType().enforceVectorTypeLength(op0.first) &&
       b->getType().enforceVectorTypeLength(op1.first) &&
       getType().enforceVectorTypeLength(ret.first);
+    break;
   }
+  return instrconstr;
 }
 
 unique_ptr<Instr> SIMDBinOp::dup(const string &suffix) const {
