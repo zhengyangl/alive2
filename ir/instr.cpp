@@ -2850,6 +2850,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     UNREACHABLE();
     return { op1.value + op2.value, true };
   }
+  // pack both operands and combine
   case x86_avx2_packssdw:
   case x86_avx2_packsswb:
   case x86_avx2_packusdw:
@@ -2888,6 +2889,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     }
     return ty->aggregateVals(vals);
   }
+  // bitwise arithmetics
   case x86_avx2_pavg_b:
   case x86_avx2_pavg_w:
   case x86_avx2_pmul_hr_sw:
@@ -2978,6 +2980,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     }
     return ty->aggregateVals(vals);
   }
+  // (binop vector scalar)
   case x86_avx2_psll_d:
   case x86_avx2_psll_q:
   case x86_avx2_psll_w:
@@ -3008,6 +3011,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     }
     return ty->aggregateVals(vals);
   }
+  // fused multiply add
   case x86_avx2_pmadd_ub_sw:
   case x86_avx2_pmadd_wd: {
     vector<StateValue> vals;
@@ -3030,6 +3034,7 @@ StateValue SIMDBinOp::toSMT(State &s) const {
     }
     return ty->aggregateVals(vals);
   }
+  // horizontal + combine
   case x86_avx2_phadd_d:
   case x86_avx2_phsub_d:
   case x86_avx2_phadd_sw:
