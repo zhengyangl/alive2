@@ -2846,6 +2846,8 @@ StateValue SIMDBinOp::toSMT(State &s) const {
   case x86_bmi_pdep_32:
   case x86_bmi_pdep_64: {
     assert (!ty && !aty && !bty);
+    // TODO
+    UNREACHABLE();
     return { op1.value + op2.value, true };
   }
   case x86_avx2_packssdw:
