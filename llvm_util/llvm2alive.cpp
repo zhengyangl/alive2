@@ -4,6 +4,7 @@
 #include "llvm_util/llvm2alive.h"
 #include "llvm_util/known_fns.h"
 #include "llvm_util/utils.h"
+#include "ir/simd.h"
 #include "util/sort.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/CFG.h"
