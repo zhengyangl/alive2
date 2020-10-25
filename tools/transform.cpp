@@ -1108,6 +1108,9 @@ static void remove_unreachable_bbs(Function &f) {
     if (!reachable.emplace(bb).second)
       continue;
 
+    if (bb->empty())
+      continue;
+
     if (auto instr = dynamic_cast<JumpInstr*>(&bb->back())) {
       for (auto &target : instr->targets()) {
         wl.emplace_back(const_cast<BasicBlock*>(&target));
