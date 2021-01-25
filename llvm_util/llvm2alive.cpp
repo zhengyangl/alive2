@@ -55,6 +55,15 @@ string_view s(llvm::StringRef str) {
   if (!ty || !a || !b || !c)              \
     return error(i)
 
+#define PARSE_QUATEROP()                  \
+  auto ty = llvm_type2alive(i.getType()); \
+  auto a = get_operand(i.getOperand(0));  \
+  auto b = get_operand(i.getOperand(1));  \
+  auto c = get_operand(i.getOperand(2));  \
+  auto d = get_operand(i.getOperand(3));  \
+  if (!ty || !a || !b || !c)              \
+    return error(i)
+
 #define RETURN_IDENTIFIER(op)      \
   do {                             \
     auto ret = op;                 \
@@ -838,6 +847,16 @@ public:
       }
       RETURN_IDENTIFIER(
         make_unique<UnaryReductionOp>(*ty, value_name(i), *val, op));
+    }
+    case llvm::Intrinsic::masked_load: {
+      PARSE_QUATEROP();
+      unsigned align = llvm::cast<llvm::ConstantInt>(i.getOperand(1))
+                         ->getAlignValue().value();
+      auto ld = make_unique<Load>(*ty, "#ld#" + value_name(i), *a, align);
+      auto ld_ptr = ld.get();
+      BB->addInstr(move(ld));
+      RETURN_IDENTIFIER(make_unique<Select>(*ty, value_name(i),
+                                            *c, *ld_ptr, *d));
     }
     case llvm::Intrinsic::fshl:
     case llvm::Intrinsic::fshr:
