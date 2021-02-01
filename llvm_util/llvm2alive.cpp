@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-#include "vectorsyn/lib/simd.h"
+#include "vectorsyn/lib/SIMDBinOp.h"
 
 using namespace llvm_util;
 using namespace IR;
